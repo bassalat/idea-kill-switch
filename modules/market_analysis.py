@@ -60,11 +60,11 @@ class MarketAnalysisModule:
             competitors = self._search_competitors(problem_description, pain_points)
             results["competitors_found"] = len(competitors)
             
-            # Track Serper API cost (approximately $0.001 per search query)
+            # Track Serper API cost ($0.0003 per search query)
             import streamlit as st
             if "api_costs" in st.session_state:
                 # Estimate 30 queries for competitors + 10 for reviews
-                serper_cost = 40 * 0.001
+                serper_cost = 40 * 0.0003
                 st.session_state.api_costs["market_analysis"] += serper_cost
                 st.session_state.api_costs["total"] += serper_cost
             

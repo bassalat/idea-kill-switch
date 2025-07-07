@@ -12,11 +12,13 @@ SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
 # Claude Settings
 CLAUDE_MODEL = "claude-sonnet-4-20250514"  # Claude Sonnet 4 - High-performance with exceptional reasoning
+# Pricing: $3/1M input tokens, $15/1M output tokens
 CLAUDE_MAX_TOKENS = 4096
 CLAUDE_TEMPERATURE = 0.7
 
 # Serper Settings
 SERPER_BASE_URL = "https://google.serper.dev"
+# Pricing: $0.30 per 1000 queries = $0.0003 per query
 SERPER_SEARCH_LIMIT = 500  # Increased to handle broader searches
 SERPER_TIME_RANGE = "6 months"
 

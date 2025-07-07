@@ -372,11 +372,11 @@ The final viability score (1-10) is calculated as:
 
 | Component | Estimated Cost | Details |
 |-----------|---------------|---------|
-| Pain Research | $1.50-2.00 | 60 searches + Claude analysis |
-| Market Analysis | $1.00-1.50 | 30 searches + Claude analysis |
-| Content Generation | $0.50-1.00 | Claude content creation |
-| Survey Analysis | $0.50 | Claude survey generation |
-| **Total per Validation** | **$3.00-5.00** | Complete 4-stage process |
+| Pain Research | $0.03-0.15 | 60 searches ($0.018) + Claude analysis |
+| Market Analysis | $0.02-0.10 | 40 searches ($0.012) + Claude analysis |
+| Content Generation | $0.02-0.05 | Claude content creation |
+| Survey Analysis | $0.01-0.03 | Claude survey generation |
+| **Total per Validation** | **$0.10-0.50** | Complete 4-stage process |
 
 ### Cost Optimization
 - Response caching reduces duplicate API calls

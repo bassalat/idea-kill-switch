@@ -106,9 +106,9 @@ class ClaudeClient:
             }
             
             # Calculate cost (Claude Sonnet 4 pricing)
-            # Input: $0.003 per 1K tokens, Output: $0.015 per 1K tokens
-            input_cost = (response.usage.input_tokens / 1000) * 0.003
-            output_cost = (response.usage.output_tokens / 1000) * 0.015
+            # Input: $3 per 1M tokens, Output: $15 per 1M tokens
+            input_cost = (response.usage.input_tokens / 1000000) * 3.0
+            output_cost = (response.usage.output_tokens / 1000000) * 15.0
             result["cost"] = input_cost + output_cost
             
             # Cache the result

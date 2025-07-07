@@ -130,11 +130,11 @@ class PainResearchModule:
                 search_strategy=search_strategy
             )
             
-            # Track Serper API cost (approximately $0.001 per search query)
+            # Track Serper API cost ($0.0003 per search query)
             import streamlit as st
             if "api_costs" in st.session_state:
-                # Estimate 60 queries at $0.001 each
-                serper_cost = 60 * 0.001
+                # 60 queries at $0.0003 each
+                serper_cost = 60 * 0.0003
                 st.session_state.api_costs["pain_research"] += serper_cost
                 st.session_state.api_costs["total"] += serper_cost
             raw_results = search_data["results"]

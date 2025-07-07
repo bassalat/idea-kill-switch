@@ -96,9 +96,13 @@ def display_header():
         # Show cost information
         total_cost = st.session_state.get("api_costs", {}).get("total", 0)
         if total_cost > 0:
-            st.metric("💰 Current Cost", f"${total_cost:.2f}")
+            # Use more decimal places for small costs
+            if total_cost < 1:
+                st.metric("💰 Current Cost", f"${total_cost:.4f}")
+            else:
+                st.metric("💰 Current Cost", f"${total_cost:.2f}")
         else:
-            st.caption("💰 Est. cost: $3-5 per validation")
+            st.caption("💰 Est. cost: $0.10-0.50 per validation")
         
         if st.button("🔄 Start New Validation", use_container_width=True, key="header_new_validation"):
             st.session_state.clear()
@@ -157,19 +161,19 @@ def input_stage():
         with col1:
             st.markdown("""
             **Estimated API Costs per Validation:**
-            - Claude API: ~$2-3
-            - Serper.dev API: ~$1-2
-            - **Total: $3-5 per complete validation**
+            - Claude API: ~$0.05-0.30
+            - Serper.dev API: ~$0.03-0.05
+            - **Total: $0.10-0.50 per complete validation**
             
             *Costs may vary based on problem complexity and search results*
             """)
         with col2:
             st.markdown("""
             **Cost Breakdown by Stage:**
-            - Pain Research: ~$1.50-2.00
-            - Market Analysis: ~$1.00-1.50
-            - Content Generation: ~$0.50-1.00
-            - Survey Analysis: ~$0.50
+            - Pain Research: ~$0.03-0.15
+            - Market Analysis: ~$0.02-0.10
+            - Content Generation: ~$0.02-0.05
+            - Survey Analysis: ~$0.01-0.03
             """)
     
     # Show quick navigation if we have previous data
@@ -757,16 +761,33 @@ Format as JSON with keys: viability_score, strengths, risks, next_steps, recomme
     cost_col1, cost_col2 = st.columns(2)
     with cost_col1:
         cost_data = st.session_state.get("api_costs", {})
-        st.metric("Total Validation Cost", f"${cost_data.get('total', 0):.2f}")
+        total_cost = cost_data.get('total', 0)
+        # Use more decimal places for small costs
+        if total_cost < 1:
+            st.metric("Total Validation Cost", f"${total_cost:.4f}")
+        else:
+            st.metric("Total Validation Cost", f"${total_cost:.2f}")
     
     with cost_col2:
         if cost_data.get('total', 0) > 0:
+            # Format costs with appropriate decimal places
+            pr_cost = cost_data.get('pain_research', 0)
+            ma_cost = cost_data.get('market_analysis', 0)
+            cg_cost = cost_data.get('content_generation', 0)
+            sa_cost = cost_data.get('survey_analysis', 0)
+            
+            def format_cost(cost):
+                if cost < 0.01:
+                    return f"${cost:.4f}"
+                else:
+                    return f"${cost:.2f}"
+            
             st.markdown(f"""
             **Cost by Stage:**
-            - Pain Research: ${cost_data.get('pain_research', 0):.2f}
-            - Market Analysis: ${cost_data.get('market_analysis', 0):.2f}  
-            - Content Generation: ${cost_data.get('content_generation', 0):.2f}
-            - Survey Analysis: ${cost_data.get('survey_analysis', 0):.2f}
+            - Pain Research: {format_cost(pr_cost)}
+            - Market Analysis: {format_cost(ma_cost)}  
+            - Content Generation: {format_cost(cg_cost)}
+            - Survey Analysis: {format_cost(sa_cost)}
             """)
     
     # Export options
