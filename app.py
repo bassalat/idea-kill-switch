@@ -640,6 +640,12 @@ Format as JSON with keys: viability_score, strengths, risks, next_steps, recomme
             temperature=0.3
         )
         
+        # Track API cost for summary generation
+        if "cost" in response:
+            if "api_costs" in st.session_state:
+                # Add to total only, not to any specific stage
+                st.session_state.api_costs["total"] += response["cost"]
+        
         # Parse response - handle markdown code blocks
         content = response["content"].strip()
         if content.startswith('```'):

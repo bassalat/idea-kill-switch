@@ -135,6 +135,13 @@ class ContentGenerationModule:
                 temperature=0.7
             )
             
+            # Track API cost
+            if "cost" in response:
+                import streamlit as st
+                if "api_costs" in st.session_state:
+                    st.session_state.api_costs["content_generation"] += response["cost"]
+                    st.session_state.api_costs["total"] += response["cost"]
+            
             try:
                 # Handle markdown code blocks from Claude
                 content = response["content"].strip()
@@ -191,6 +198,13 @@ class ContentGenerationModule:
                 temperature=0.8
             )
             
+            # Track API cost
+            if "cost" in response:
+                import streamlit as st
+                if "api_costs" in st.session_state:
+                    st.session_state.api_costs["content_generation"] += response["cost"]
+                    st.session_state.api_costs["total"] += response["cost"]
+            
             try:
                 # Handle markdown code blocks from Claude
                 content = response["content"].strip()
@@ -246,6 +260,13 @@ class ContentGenerationModule:
                 system_prompt="You are a conversion optimization expert. Always respond with valid JSON.",
                 temperature=0.3
             )
+            
+            # Track API cost
+            if "cost" in response:
+                import streamlit as st
+                if "api_costs" in st.session_state:
+                    st.session_state.api_costs["content_generation"] += response["cost"]
+                    st.session_state.api_costs["total"] += response["cost"]
             
             try:
                 # Handle markdown code blocks from Claude

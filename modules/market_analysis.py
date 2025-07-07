@@ -60,6 +60,14 @@ class MarketAnalysisModule:
             competitors = self._search_competitors(problem_description, pain_points)
             results["competitors_found"] = len(competitors)
             
+            # Track Serper API cost (approximately $0.001 per search query)
+            import streamlit as st
+            if "api_costs" in st.session_state:
+                # Estimate 30 queries for competitors + 10 for reviews
+                serper_cost = 40 * 0.001
+                st.session_state.api_costs["market_analysis"] += serper_cost
+                st.session_state.api_costs["total"] += serper_cost
+            
             # Step 2: Search for market data
             if progress_callback:
                 progress_callback("Gathering market size and industry data...")
@@ -437,6 +445,13 @@ class MarketAnalysisModule:
                 system_prompt="You are a market research analyst. Always respond with valid JSON only, no markdown formatting or explanations outside the JSON.",
                 temperature=0.3
             )
+            
+            # Track API cost
+            if "cost" in response:
+                import streamlit as st
+                if "api_costs" in st.session_state:
+                    st.session_state.api_costs["market_analysis"] += response["cost"]
+                    st.session_state.api_costs["total"] += response["cost"]
             
             # Parse response
             try:

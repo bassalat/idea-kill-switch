@@ -129,6 +129,14 @@ class PainResearchModule:
                 use_ai_queries=use_ai_queries,
                 search_strategy=search_strategy
             )
+            
+            # Track Serper API cost (approximately $0.001 per search query)
+            import streamlit as st
+            if "api_costs" in st.session_state:
+                # Estimate 60 queries at $0.001 each
+                serper_cost = 60 * 0.001
+                st.session_state.api_costs["pain_research"] += serper_cost
+                st.session_state.api_costs["total"] += serper_cost
             raw_results = search_data["results"]
             self.search_queries = search_data["queries"]  # Store for display
             
@@ -199,6 +207,13 @@ class PainResearchModule:
                 system_prompt="You are an expert business analyst evaluating market problems. Always respond with valid JSON only, no markdown formatting or explanations outside the JSON.",
                 temperature=0.3
             )
+            
+            # Track API cost
+            if "cost" in response:
+                import streamlit as st
+                if "api_costs" in st.session_state:
+                    st.session_state.api_costs["pain_research"] += response["cost"]
+                    st.session_state.api_costs["total"] += response["cost"]
             
             # Parse response
             try:

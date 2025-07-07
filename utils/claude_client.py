@@ -105,6 +105,12 @@ class ClaudeClient:
                 "stop_reason": response.stop_reason
             }
             
+            # Calculate cost (Claude Sonnet 4 pricing)
+            # Input: $0.003 per 1K tokens, Output: $0.015 per 1K tokens
+            input_cost = (response.usage.input_tokens / 1000) * 0.003
+            output_cost = (response.usage.output_tokens / 1000) * 0.015
+            result["cost"] = input_cost + output_cost
+            
             # Cache the result
             if ENABLE_CACHE:
                 self._cache[cache_key] = result
@@ -412,6 +418,13 @@ Return ONLY a JSON array of SIMPLE search query strings. Make them broad enough 
                 temperature=0.7,
                 max_tokens=2000
             )
+            
+            # Track API cost - this is part of pain research
+            if "cost" in response:
+                import streamlit as st
+                if "api_costs" in st.session_state:
+                    st.session_state.api_costs["pain_research"] += response["cost"]
+                    st.session_state.api_costs["total"] += response["cost"]
             
             # Parse the response - handle cases where Claude adds explanation
             content = response["content"].strip()

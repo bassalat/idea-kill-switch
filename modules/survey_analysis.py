@@ -58,6 +58,13 @@ class SurveyAnalysisModule:
                 temperature=0.5
             )
             
+            # Track API cost
+            if "cost" in response:
+                import streamlit as st
+                if "api_costs" in st.session_state:
+                    st.session_state.api_costs["survey_analysis"] += response["cost"]
+                    st.session_state.api_costs["total"] += response["cost"]
+            
             try:
                 questions = json.loads(response["content"])
                 results["questions"] = questions
@@ -131,6 +138,13 @@ class SurveyAnalysisModule:
                 system_prompt="You are a pricing analyst. Always respond with valid JSON.",
                 temperature=0.3
             )
+            
+            # Track API cost
+            if "cost" in response:
+                import streamlit as st
+                if "api_costs" in st.session_state:
+                    st.session_state.api_costs["survey_analysis"] += response["cost"]
+                    st.session_state.api_costs["total"] += response["cost"]
             
             try:
                 analysis = json.loads(response["content"])
