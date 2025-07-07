@@ -2,6 +2,8 @@
 
 An intelligent business idea validation tool that helps entrepreneurs quickly determine if their idea is worth pursuing. Using AI and automated research, it provides clear "kill or continue" decisions at each validation stage.
 
+> **Inspired by Tom Bilyeu's LinkedIn post**: [I turned a $10,000 investment into a $1,000,000,000 business](https://www.linkedin.com/posts/tombilyeu_i-turned-a-10000-investment-into-a-1000000000-activity-7345436914457395200-r86u) - where he shares the "kill switch" methodology that helped Quest Nutrition validate ideas quickly and efficiently.
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -580,8 +582,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Inspired by the LinkedIn post "THE AI-POWERED KILL SWITCH"
+- Inspired by [Tom Bilyeu's LinkedIn post](https://www.linkedin.com/posts/tombilyeu_i-turned-a-10000-investment-into-a-1000000000-activity-7345436914457395200-r86u) on the "AI-Powered Kill Switch" methodology
+- Based on the validation framework that helped Quest Nutrition grow from $10,000 to a $1 billion valuation
 - Built with [Streamlit](https://streamlit.io/), [Claude](https://anthropic.com), and [Serper.dev](https://serper.dev/)
+- Special thanks to Tom Bilyeu for sharing this powerful validation framework
 - Community contributions and feedback
 
 ## Support
