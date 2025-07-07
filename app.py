@@ -66,6 +66,15 @@ def init_session_state():
     
     if "current_task" not in st.session_state:
         st.session_state.current_task = 1
+    
+    if "api_costs" not in st.session_state:
+        st.session_state.api_costs = {
+            "pain_research": 0,
+            "market_analysis": 0,
+            "content_generation": 0,
+            "survey_analysis": 0,
+            "total": 0
+        }
 
 
 def check_api_keys():
@@ -84,6 +93,13 @@ def display_header():
         st.title(f"{APP_NAME} 🚦")
         st.markdown(f"*{APP_DESCRIPTION}*")
     with col2:
+        # Show cost information
+        total_cost = st.session_state.get("api_costs", {}).get("total", 0)
+        if total_cost > 0:
+            st.metric("💰 Current Cost", f"${total_cost:.2f}")
+        else:
+            st.caption("💰 Est. cost: $3-5 per validation")
+        
         if st.button("🔄 Start New Validation", use_container_width=True, key="header_new_validation"):
             st.session_state.clear()
             init_session_state()
@@ -134,6 +150,27 @@ def display_progress():
 def input_stage():
     """Handle initial input stage."""
     st.header("Let's Validate Your Business Idea")
+    
+    # Show cost information
+    with st.expander("💰 Pricing Information", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("""
+            **Estimated API Costs per Validation:**
+            - Claude API: ~$2-3
+            - Serper.dev API: ~$1-2
+            - **Total: $3-5 per complete validation**
+            
+            *Costs may vary based on problem complexity and search results*
+            """)
+        with col2:
+            st.markdown("""
+            **Cost Breakdown by Stage:**
+            - Pain Research: ~$1.50-2.00
+            - Market Analysis: ~$1.00-1.50
+            - Content Generation: ~$0.50-1.00
+            - Survey Analysis: ~$0.50
+            """)
     
     # Show quick navigation if we have previous data
     if st.session_state.get("problem_description"):
@@ -707,6 +744,24 @@ Format as JSON with keys: viability_score, strengths, risks, next_steps, recomme
                 st.error(f"❌ Failed: {survey.get('kill_reason', 'Unknown')}")
             else:
                 st.success(f"✅ Passed: Avg WTP ${survey.get('avg_wtp', 0)}/mo")
+    
+    # Cost Breakdown
+    st.subheader("💰 API Cost Breakdown")
+    
+    cost_col1, cost_col2 = st.columns(2)
+    with cost_col1:
+        cost_data = st.session_state.get("api_costs", {})
+        st.metric("Total Validation Cost", f"${cost_data.get('total', 0):.2f}")
+    
+    with cost_col2:
+        if cost_data.get('total', 0) > 0:
+            st.markdown(f"""
+            **Cost by Stage:**
+            - Pain Research: ${cost_data.get('pain_research', 0):.2f}
+            - Market Analysis: ${cost_data.get('market_analysis', 0):.2f}  
+            - Content Generation: ${cost_data.get('content_generation', 0):.2f}
+            - Survey Analysis: ${cost_data.get('survey_analysis', 0):.2f}
+            """)
     
     # Export options
     st.subheader("📥 Export Results")
