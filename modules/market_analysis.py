@@ -86,8 +86,62 @@ class MarketAnalysisModule:
             # Update results
             results.update(analysis)
             
+            # Add detailed competitor info to results
+            results["high_price_competitors"] = []
+            for comp in enriched_competitors:
+                pricing = comp.get("pricing", {})
+                if pricing.get("found") and pricing.get("monthly", 0) >= MIN_COMPETITOR_PRICE:
+                    results["high_price_competitors"].append({
+                        "name": comp.get("name", "Unknown"),
+                        "price": pricing.get("monthly"),
+                        "link": comp.get("link", "")
+                    })
+            
             # Step 5: Make kill/continue decision
-            paying_competitors = self._count_paying_competitors(enriched_competitors)
+            # First try to count from Claude's analysis if available
+            paying_competitors = 0
+            
+            # Check if Claude found competitors with high pricing in the analysis
+            claude_high_price_competitors = 0
+            if "top_competitors" in analysis and isinstance(analysis["top_competitors"], list):
+                # Count competitors from Claude's analysis
+                for comp_str in analysis["top_competitors"]:
+                    # Check if price is mentioned in the competitor string
+                    import re
+                    price_matches = re.findall(r'\$(\d+)', comp_str)
+                    for price_str in price_matches:
+                        try:
+                            price = int(price_str)
+                            if price >= MIN_COMPETITOR_PRICE:
+                                claude_high_price_competitors += 1
+                                print(f"DEBUG: Claude found competitor with ${price}+: {comp_str[:80]}...")
+                                break  # Count each competitor only once
+                        except:
+                            continue
+            
+            # Also check if Claude reported high average pricing
+            if analysis.get("avg_pricing", {}).get("monthly_average", 0) >= MIN_COMPETITOR_PRICE:
+                # If average is high, there must be several competitors at that price
+                if claude_high_price_competitors < 3 and len(enriched_competitors) >= 3:
+                    claude_high_price_competitors = 3
+                    print(f"DEBUG: Claude reported average price ${analysis['avg_pricing']['monthly_average']}, assuming 3+ competitors at this level")
+            
+            # Also check the enriched competitors data
+            direct_count = self._count_paying_competitors(enriched_competitors)
+            
+            # Use the higher count (trust Claude's analysis if it found more)
+            paying_competitors = max(claude_high_price_competitors, direct_count)
+            
+            # Debug: Print competitor pricing details
+            print(f"\nDEBUG: Competitor pricing analysis:")
+            print(f"Total competitors analyzed: {len(enriched_competitors)}")
+            for i, comp in enumerate(enriched_competitors[:10]):
+                pricing = comp.get("pricing", {})
+                print(f"{i+1}. {comp.get('name', 'Unknown')}: ")
+                print(f"   - Pricing found: {pricing.get('found', False)}")
+                print(f"   - Monthly price: ${pricing.get('monthly', 'N/A')}")
+                print(f"   - Pricing mentioned: {comp.get('pricing_mentioned', False)}")
+            print(f"\nPaying competitors count: {paying_competitors}")
             
             if paying_competitors < 3:
                 results["kill_decision"] = True
@@ -203,44 +257,71 @@ class MarketAnalysisModule:
             "model": "Unknown"
         }
         
-        # Check if pricing was mentioned in initial search
-        if competitor.get("pricing_mentioned"):
-            # Look for price patterns in description
-            import re
-            text = competitor.get("description", "")
-            
-            # Monthly pricing patterns - expanded
-            monthly_patterns = [
-                r'\$(\d+(?:\.\d+)?)\s*(?:per\s*)?month',
-                r'\$(\d+(?:\.\d+)?)/mo',
-                r'(\d+(?:\.\d+)?)\s*USD\s*(?:per\s*)?month',
-                r'\$(\d+(?:\.\d+)?)\s*(?:per\s*)?user',
-                r'\$(\d+(?:\.\d+)?)',  # Any dollar amount
-                r'from\s*\$(\d+(?:\.\d+)?)',
-                r'starting\s*at\s*\$(\d+(?:\.\d+)?)',
-                r'plans\s*from\s*\$(\d+(?:\.\d+)?)',
-                r'\$(\d+(?:\.\d+)?)\s*-\s*\$(\d+(?:\.\d+)?)'  # Price range
-            ]
-            
-            for pattern in monthly_patterns:
-                match = re.search(pattern, text, re.IGNORECASE)
-                if match:
-                    pricing["found"] = True
-                    # For price ranges, take the lower value
-                    pricing["monthly"] = float(match.group(1))
-                    pricing["model"] = "Subscription"
-                    break
-            
-            # Also check the title and link text
-            if not pricing["found"]:
-                all_text = f"{text} {competitor.get('title', '')} {reviews}"
-                for pattern in monthly_patterns[:5]:  # Check first 5 patterns
-                    match = re.search(pattern, all_text, re.IGNORECASE)
-                    if match:
+        # Combine all text sources for better extraction
+        import re
+        all_text = f"{competitor.get('description', '')} {competitor.get('title', '')} {competitor.get('snippet', '')}"
+        
+        # Also add review text if available
+        if reviews:
+            for review in reviews[:5]:  # Check first 5 reviews
+                all_text += f" {review.get('snippet', '')} {review.get('title', '')}"
+        
+        # Monthly pricing patterns - expanded and improved
+        monthly_patterns = [
+            (r'\$(\d+(?:\.\d+)?)\s*(?:per\s*)?month', 1),
+            (r'\$(\d+(?:\.\d+)?)/mo', 1),
+            (r'(\d+(?:\.\d+)?)\s*USD\s*(?:per\s*)?month', 1),
+            (r'\$(\d+(?:\.\d+)?)\s*(?:per\s*)?user', 1),
+            (r'from\s*\$(\d+(?:\.\d+)?)', 1),
+            (r'starting\s*at\s*\$(\d+(?:\.\d+)?)', 1),
+            (r'plans\s*from\s*\$(\d+(?:\.\d+)?)', 1),
+            (r'starts\s*at\s*\$(\d+(?:\.\d+)?)', 1),
+            (r'pricing\s*starts\s*at\s*\$(\d+(?:\.\d+)?)', 1),
+            (r'\$(\d+(?:\.\d+)?)\s*-\s*\$(\d+(?:\.\d+)?)', 1),  # Price range - take lower
+            (r'between\s*\$(\d+(?:\.\d+)?)\s*(?:and|to)\s*\$(\d+(?:\.\d+)?)', 1),
+            (r'costs?\s*\$(\d+(?:\.\d+)?)', 1),
+            (r'priced?\s*at\s*\$(\d+(?:\.\d+)?)', 1),
+            (r'\$(\d+(?:\.\d+)?)\s*(?:for|per)', 1)
+        ]
+        
+        # Try each pattern
+        for pattern, group_num in monthly_patterns:
+            matches = re.findall(pattern, all_text, re.IGNORECASE)
+            if matches:
+                # Get the first match
+                match = matches[0]
+                if isinstance(match, tuple):
+                    # For patterns with multiple groups, take the specified group
+                    price_str = match[group_num - 1] if len(match) >= group_num else match[0]
+                else:
+                    price_str = match
+                
+                try:
+                    price = float(price_str)
+                    # Filter out unrealistic prices (too low or too high)
+                    if 5 <= price <= 10000:
                         pricing["found"] = True
-                        pricing["monthly"] = float(match.group(1))
+                        pricing["monthly"] = price
                         pricing["model"] = "Subscription"
                         break
+                except:
+                    continue
+        
+        # If no monthly price found, look for any price mention
+        if not pricing["found"] and competitor.get("pricing_mentioned"):
+            # Simple dollar amount pattern
+            simple_pattern = r'\$(\d+(?:\.\d+)?)'
+            matches = re.findall(simple_pattern, all_text)
+            for match in matches:
+                try:
+                    price = float(match)
+                    if 5 <= price <= 10000:  # Reasonable price range
+                        pricing["found"] = True
+                        pricing["monthly"] = price
+                        pricing["model"] = "Subscription (estimated)"
+                        break
+                except:
+                    continue
         
         return pricing
     
@@ -257,24 +338,71 @@ class MarketAnalysisModule:
     ) -> int:
         """Count competitors with pricing above threshold."""
         count = 0
+        competitors_with_pricing = []
+        
         for comp in competitors:
             pricing = comp.get("pricing", {})
+            name = comp.get("name", "Unknown")
+            
+            # Check if we found exact pricing
             if pricing.get("found") and pricing.get("monthly"):
                 if pricing["monthly"] >= MIN_COMPETITOR_PRICE:
                     count += 1
-            elif comp.get("pricing_mentioned"):  # Even if exact price not extracted
-                # Assume it's a paid product if pricing is mentioned
-                count += 0.5  # Half credit
+                    competitors_with_pricing.append(f"{name}: ${pricing['monthly']}/mo")
+                    print(f"DEBUG: Found competitor with pricing >= ${MIN_COMPETITOR_PRICE}: {name} at ${pricing['monthly']}/mo")
+            elif comp.get("pricing_mentioned"):
+                # Check description and title for price mentions
+                text = f"{comp.get('description', '')} {comp.get('title', '')}"
+                
+                # Look for any price mention that might indicate > $50
+                import re
+                price_patterns = [
+                    r'\$(\d+)', 
+                    r'(\d+)\s*USD',
+                    r'from\s*\$(\d+)',
+                    r'starting\s*at\s*\$(\d+)',
+                    r'\$(\d+)\s*-\s*\$(\d+)'
+                ]
+                
+                found_price = False
+                for pattern in price_patterns:
+                    matches = re.findall(pattern, text, re.IGNORECASE)
+                    for match in matches:
+                        # Handle price ranges
+                        if isinstance(match, tuple):
+                            prices = [int(p) for p in match if p.isdigit()]
+                        else:
+                            prices = [int(match)] if match.isdigit() else []
+                        
+                        # Check if any price is >= threshold
+                        for price in prices:
+                            if price >= MIN_COMPETITOR_PRICE:
+                                count += 1
+                                competitors_with_pricing.append(f"{name}: ${price}+ mentioned")
+                                print(f"DEBUG: Found competitor with pricing mention >= ${MIN_COMPETITOR_PRICE}: {name}")
+                                found_price = True
+                                break
+                        if found_price:
+                            break
+                
+                # If pricing is mentioned but no specific price found, give partial credit
+                if not found_price and "pricing" in text.lower():
+                    count += 0.5
+                    print(f"DEBUG: Competitor mentions pricing but no specific amount: {name}")
         
-        # Also count high-confidence competitors without pricing
+        # If we still have < 3, check for enterprise/business indicators
         if count < 3:
             for comp in competitors:
-                if not comp.get("pricing", {}).get("found"):
-                    # If it's clearly a business product, count it
-                    desc = comp.get("description", "").lower()
-                    if any(word in desc for word in ["enterprise", "business", "professional", "team", "premium"]):
+                if comp.get("name", "Unknown") not in [c.split(":")[0] for c in competitors_with_pricing]:
+                    desc = f"{comp.get('description', '')} {comp.get('title', '')}".lower()
+                    name = comp.get("name", "Unknown")
+                    
+                    # Strong indicators of paid B2B products
+                    if any(word in desc for word in ["enterprise", "business pricing", "professional plan", "team plan", "premium", "per user", "per month", "subscription"]):
                         count += 0.5
+                        print(f"DEBUG: Competitor likely paid based on description: {name}")
         
+        print(f"DEBUG: Total paying competitors count: {count}")
         return int(count)
     
     def _analyze_market(
@@ -376,6 +504,39 @@ class MarketAnalysisModule:
             st.metric("Opportunity Score", f"{results.get('opportunity_score', 0)}/10")
         with col4:
             st.metric("Market Size", results.get("market_size", "Unknown"))
+        
+        # Show competitors charging > $50
+        high_price_competitors = results.get("high_price_competitors", [])
+        
+        # Also check Claude's analysis for additional competitors
+        if results.get("top_competitors"):
+            import re
+            for comp_str in results["top_competitors"][:10]:
+                # Extract price from Claude's competitor strings
+                price_match = re.search(r'\$(\d+)', comp_str)
+                if price_match:
+                    price = int(price_match.group(1))
+                    if price >= MIN_COMPETITOR_PRICE:
+                        # Extract company name (usually before the price or dash)
+                        name_match = re.match(r'^([^-$]+)', comp_str)
+                        if name_match:
+                            name = name_match.group(1).strip()
+                            # Check if not already in list
+                            if not any(c["name"] == name for c in high_price_competitors):
+                                high_price_competitors.append({
+                                    "name": name,
+                                    "price": price,
+                                    "from_analysis": True
+                                })
+        
+        if high_price_competitors:
+            st.info(f"🎯 Found {len(high_price_competitors)} competitors charging ${MIN_COMPETITOR_PRICE}+ per month:")
+            for comp in high_price_competitors[:10]:  # Show top 10
+                source = " (from market analysis)" if comp.get("from_analysis") else ""
+                if comp.get("link"):
+                    st.write(f"  • **[{comp['name']}]({comp['link']})**: ${comp['price']}/month{source}")
+                else:
+                    st.write(f"  • **{comp['name']}**: ${comp['price']}/month{source}")
         
         # Market Insights
         st.subheader("Market Insights")
