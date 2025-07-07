@@ -888,7 +888,7 @@ def main():
     st.markdown("---")
     st.markdown(
         f"*{APP_NAME} v1.0 | Powered by Claude AI & Serper.dev | "
-        f"[View Documentation](https://github.com/yourusername/kill-switch)*"
+        f"[View Documentation](https://github.com/bassalat/idea-kill-switch)*"
     )
 
 
