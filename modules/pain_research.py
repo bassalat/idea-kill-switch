@@ -97,12 +97,11 @@ class PainResearchModule:
             threshold_results = self._evaluate_thresholds(results)
             results["threshold_evaluations"] = threshold_results
             
-            # Use the selected threshold level for kill decision
-            selected_level = st.session_state.get("threshold_level", DEFAULT_THRESHOLD_LEVEL)
-            selected_result = threshold_results[selected_level]
+            # Use medium threshold as default for kill decision (for app flow)
+            medium_result = threshold_results["medium"]
             
-            results["kill_decision"] = not selected_result["passed"]
-            results["kill_reason"] = selected_result["reason"] if not selected_result["passed"] else ""
+            results["kill_decision"] = not medium_result["passed"]
+            results["kill_reason"] = medium_result["reason"] if not medium_result["passed"] else ""
             
             if progress_callback:
                 progress_callback("Pain research completed!")
@@ -416,26 +415,13 @@ class PainResearchModule:
     
     def display_results(self, results: Dict[str, Any]):
         """Display research results in Streamlit UI."""
-        # Show threshold selection
+        # Define threshold names for use throughout
         threshold_levels = ["easy", "medium", "difficult"]
         threshold_names = {
             "easy": "🟢 Easy (Market Exists)",
             "medium": "🟡 Medium (Strong Opportunity)",
             "difficult": "🔴 Difficult (Exceptional Problem)"
         }
-        
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.subheader("Select Validation Threshold")
-        with col2:
-            selected_threshold = st.radio(
-                "Threshold Level",
-                threshold_levels,
-                index=threshold_levels.index(st.session_state.get("threshold_level", DEFAULT_THRESHOLD_LEVEL)),
-                format_func=lambda x: threshold_names[x].split(" ")[1],
-                horizontal=True,
-                key="threshold_level"
-            )
         
         # Three-tier evaluation display
         if results.get("threshold_evaluations"):
@@ -514,15 +500,32 @@ class PainResearchModule:
                         emotional_met = criteria.get('actual_emotional', 0) >= criteria.get('emotional_required', 0)
                         st.write(f"**{'✓' if emotional_met else '✗'} Emotional:** {criteria.get('actual_emotional', 0):.0f}% (≥{criteria.get('emotional_required', 0)}% required)")
         
-        # Current decision based on selected threshold
+        # Validation Summary
         st.divider()
-        selected_eval = results.get("threshold_evaluations", {}).get(selected_threshold, {})
-        if selected_eval.get("passed"):
-            st.success(f"✅ CONTINUE: Problem validated at {threshold_names[selected_threshold]} level")
-        else:
-            st.error(f"🛑 KILL DECISION: Failed {threshold_names[selected_threshold]} validation")
-            if selected_eval.get("reason"):
-                st.error(f"Reason: {selected_eval['reason']}")
+        
+        # Show a simple summary of validation levels achieved
+        if results.get("threshold_evaluations"):
+            evaluations = results["threshold_evaluations"]
+            validation_summary = []
+            highest_passed = None
+            
+            for level in ["easy", "medium", "difficult"]:
+                if evaluations[level]["passed"]:
+                    validation_summary.append(f"{threshold_names[level].split(' ')[0]} ✅")
+                    highest_passed = level
+                else:
+                    validation_summary.append(f"{threshold_names[level].split(' ')[0]} ❌")
+            
+            st.write("**Validation Summary:** " + " | ".join(validation_summary))
+            
+            if highest_passed == "difficult":
+                st.success("🎯 **Exceptional Problem Validated** - This is a rare find with strong market potential!")
+            elif highest_passed == "medium":
+                st.success("✅ **Strong Opportunity Validated** - Good foundation for a viable business")
+            elif highest_passed == "easy":
+                st.info("📊 **Market Exists** - Some pain validated, consider deeper research")
+            else:
+                st.error("🛑 **No Validation Achieved** - Consider pivoting to a different problem")
         
         # Complaint Analysis Breakdown
         st.subheader("Complaint Analysis")
