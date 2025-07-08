@@ -439,6 +439,33 @@ class PainResearchModule:
         
         # Three-tier evaluation display
         if results.get("threshold_evaluations"):
+            # Add explanation section
+            with st.expander("📚 Understanding Pain Validation Thresholds", expanded=False):
+                st.markdown("""
+                ### How Pain Validation Works
+                
+                Our system analyzes search results and classifies them into quality tiers:
+                
+                **Complaint Quality Tiers:**
+                - **🔴 Tier 3 (High-Impact)**: Direct frustration with measurable losses - weighted 3x
+                  - Examples: "Lost $5k due to this", "Waste 3 hours daily"
+                - **🟡 Tier 2 (Moderate)**: Clear problems, seeking alternatives - weighted 2x
+                  - Examples: "Looking for better solution", "Current tools don't work"
+                - **🟢 Tier 1 (Low-Value)**: General questions, mild issues - weighted 1x
+                  - Examples: "How do I...?", "Would be nice if..."
+                - **⚪ Tier 0**: Not complaints (tutorials, ads, etc.) - not counted
+                
+                **Weighted Score Calculation:**
+                `Weighted Score = (Tier 3 × 3) + (Tier 2 × 2) + (Tier 1 × 1)`
+                
+                **Three Validation Levels:**
+                1. **Easy**: Confirms a market exists with some pain
+                2. **Medium**: Validates sufficient pain for a viable business
+                3. **Difficult**: Identifies exceptional, underserved problems
+                
+                Each level has different requirements, shown below with ✓ for met criteria and ✗ for unmet.
+                """)
+            
             st.subheader("Pain Validation Results")
             
             evaluations = results["threshold_evaluations"]
@@ -457,17 +484,35 @@ class PainResearchModule:
                         st.error(f"**{threshold_names[level]}**")
                         st.markdown("❌ **FAIL**")
                     
-                    # Show criteria
+                    # Show criteria with clearer formatting
                     criteria = eval_data["criteria"]
-                    st.write(f"**Complaints:** {criteria['actual_complaints']}/{criteria['complaints_required']}")
-                    st.write(f"**Pain Score:** {criteria['actual_pain_score']:.1f}/{criteria['pain_score_required']}")
+                    
+                    # Complaints
+                    complaints_met = criteria['actual_complaints'] >= criteria['complaints_required']
+                    st.write(f"**{'✓' if complaints_met else '✗'} Complaints:** {criteria['actual_complaints']} (≥{criteria['complaints_required']} required)")
+                    
+                    # Pain Score
+                    pain_met = criteria['actual_pain_score'] >= criteria['pain_score_required']
+                    st.write(f"**{'✓' if pain_met else '✗'} Pain Score:** {criteria['actual_pain_score']:.1f} (≥{criteria['pain_score_required']} required)")
+                    
+                    # Quality requirement for medium/difficult
+                    if level in ["medium", "difficult"]:
+                        quality_rating = results.get('quality_metrics', {}).get('quality_rating', 'low')
+                        quality_required = criteria.get('quality_required', 'medium')
+                        quality_met = (
+                            (quality_required == "medium" and quality_rating in ["medium", "high"]) or
+                            (quality_required == "high" and quality_rating == "high")
+                        )
+                        st.write(f"**{'✓' if quality_met else '✗'} Quality:** {quality_rating.upper()} ({quality_required}+ required)")
                     
                     if level == "difficult":
-                        st.write(f"**Urgency:** {criteria.get('actual_urgency', 0):.0f}%/{criteria.get('urgency_required', 0)}%")
-                        st.write(f"**Emotional:** {criteria.get('actual_emotional', 0):.0f}%/{criteria.get('emotional_required', 0)}%")
-                    
-                    if not eval_data["passed"] and eval_data["reason"]:
-                        st.caption(f"Failed: {eval_data['reason']}")
+                        # Urgency
+                        urgency_met = criteria.get('actual_urgency', 0) >= criteria.get('urgency_required', 0)
+                        st.write(f"**{'✓' if urgency_met else '✗'} Urgency:** {criteria.get('actual_urgency', 0):.0f}% (≥{criteria.get('urgency_required', 0)}% required)")
+                        
+                        # Emotional
+                        emotional_met = criteria.get('actual_emotional', 0) >= criteria.get('emotional_required', 0)
+                        st.write(f"**{'✓' if emotional_met else '✗'} Emotional:** {criteria.get('actual_emotional', 0):.0f}% (≥{criteria.get('emotional_required', 0)}% required)")
         
         # Current decision based on selected threshold
         st.divider()
@@ -502,6 +547,11 @@ class PainResearchModule:
                     if count > 0:
                         percentage = (count / breakdown.get("total_analyzed", 1)) * 100
                         st.write(f"{tier}: **{count}** ({percentage:.1f}%)")
+                
+                # Show weighted calculation
+                if breakdown.get("tier_3_high_impact", 0) > 0 or breakdown.get("tier_2_moderate", 0) > 0:
+                    st.caption("**Weighted Score Calculation:**")
+                    st.caption(f"({breakdown.get('tier_3_high_impact', 0)} × 3) + ({breakdown.get('tier_2_moderate', 0)} × 2) + ({breakdown.get('tier_1_low_value', 0)} × 1) = **{results.get('weighted_complaint_score', 0)}**")
             
             with col2:
                 quality_metrics = results.get("quality_metrics", {})
@@ -514,6 +564,15 @@ class PainResearchModule:
                     st.write(f"• High-Impact Ratio: {quality_metrics.get('high_impact_ratio', 0):.1%}")
                     st.write(f"• Urgency: {quality_metrics.get('urgency_percentage', 0):.0f}%")
                     st.write(f"• Emotional Intensity: {quality_metrics.get('emotional_intensity_percentage', 0):.0f}%")
+                    
+                    # Explain quality rating
+                    st.caption("**Quality Rating:**")
+                    if quality_metrics.get('quality_rating') == 'high':
+                        st.caption("HIGH = Strong evidence of urgent, costly problems")
+                    elif quality_metrics.get('quality_rating') == 'medium':
+                        st.caption("MEDIUM = Mix of serious and minor complaints")
+                    else:
+                        st.caption("LOW = Mostly questions or minor inconveniences")
         
         # Show search queries performed
         if self.search_queries:
