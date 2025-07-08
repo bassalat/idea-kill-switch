@@ -80,3 +80,6 @@ dmypy.json
 
 # Logs
 *.log
+
+# Project-specific files
+chat_summary.md
