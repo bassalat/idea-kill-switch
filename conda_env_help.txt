@@ -1,0 +1,6 @@
+
+⏺ Found it! The miniconda is installed at /Users/bassalat/opt/miniconda3. Let me activate the environment:
+
+⏺ Bash(source /Users/bassalat/opt/miniconda3/etc/profile.d/conda.sh && conda activate venv_killswitch && python -m pytest tests/test_modules.py::test_pain_research -v)
+  ⎿  Running…
+

@@ -1,39 +1,66 @@
 """Prompt templates for Claude API interactions."""
 
 PAIN_ANALYSIS_PROMPT = """
-Analyze the following search results about {problem_description}:
+Analyze these search results about {problem_description} and classify each one:
 
 {complaints_json}
 
-IMPORTANT: These are general search results, not all will be direct complaints. Your job is to:
-1. Look for ANY signs of pain, frustration, or problems in these results
-2. Identify discussions where people are seeking help or alternatives
-3. Find questions that indicate confusion or difficulty
-4. Note any mentions of time wasted, money spent, or inefficiencies
-5. Consider indirect indicators of pain (people asking "how to", seeking alternatives, comparing solutions)
+For each result, determine:
 
-Please provide a comprehensive analysis including:
-1. A pain score from 1-10 based on:
-   - How many results indicate some form of problem or frustration
-   - Urgency and frequency of issues mentioned
-   - Impact on users (time, money, efficiency)
-   - Even if not direct complaints, do people struggle with this area?
+**Complaint Tier Classification:**
+- Tier 3 (High-Impact): Direct frustration with specific negative impact (lost time/money/opportunities), failed solution attempts, strong emotional language
+- Tier 2 (Moderate): Clear problem statement, seeking alternatives, comparing solutions unfavorably
+- Tier 1 (Low-Value): General questions, mild inconvenience, feature requests without emotion
+- Tier 0 (Not a complaint): Promotional content, tutorials, positive mentions, off-topic
 
-2. Key recurring themes (list top 3-5)
+**For valid complaints (Tier 1-3), extract:**
+1. Specific pain point mentioned
+2. Emotional intensity (1-10)
+3. Impact type (time/money/opportunity/frustration)
+4. Evidence of current solution attempts
+5. Urgency indicators (needs solution now vs someday)
 
-3. Most relevant quotes that indicate pain points (max 5)
-   - Can be questions, requests for help, or expressions of difficulty
+**Calculate overall metrics:**
+1. Total complaints by tier
+2. Weighted complaint score = (Tier3 × 3) + (Tier2 × 2) + (Tier1 × 1)
+3. Quality metrics:
+   - High-impact ratio = Tier3 / Total valid complaints
+   - Quality score = (Tier3 + Tier2) / Total valid complaints
+   - Urgency percentage = % needing immediate solutions
+   - Emotional intensity percentage = % with intensity ≥ 7
+4. Pain score (1-10) based on weighted analysis
+5. Key themes from high-impact complaints
 
-4. Assessment of whether this represents a real problem worth solving
-
-Format your response as JSON with the following structure (return ONLY the JSON, no markdown code blocks or additional text):
+Format your response as JSON (return ONLY the JSON, no markdown code blocks or additional text):
 {{
     "pain_score": <number 1-10>,
+    "complaint_breakdown": {{
+        "tier_3_high_impact": <count>,
+        "tier_2_moderate": <count>,
+        "tier_1_low_value": <count>,
+        "tier_0_not_complaints": <count>,
+        "total_analyzed": <count>
+    }},
+    "weighted_complaint_score": <number>,
+    "quality_metrics": {{
+        "high_impact_ratio": <0-1>,
+        "quality_score": <0-1>,
+        "urgency_percentage": <0-100>,
+        "emotional_intensity_percentage": <0-100>,
+        "quality_rating": <"low", "medium", "high">
+    }},
     "themes": ["theme1", "theme2", ...],
-    "key_quotes": ["quote1", "quote2", ...],
-    "is_urgent_problem": <true/false>,
-    "analysis_summary": "<brief summary of findings>"
+    "high_impact_quotes": ["quote1", "quote2", ...],
+    "specific_problems": ["problem1", "problem2", ...],
+    "urgency": <"low", "medium", "high">,
+    "analysis_summary": "<detailed summary of findings>"
 }}
+
+Pain score calculation should heavily weight:
+- High-impact complaints (Tier 3)
+- Quality over quantity
+- Emotional intensity and urgency
+- Specific measurable impacts mentioned
 """
 
 MARKET_ANALYSIS_PROMPT = """

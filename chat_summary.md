@@ -952,3 +952,100 @@ if content.startswith('```'):
 - Cost tracking in session state
 - Professional PDF formatting
 ```
+
+## Latest Bug Fixes and Cost Corrections (Session 49-51)
+
+### 49. Market Analysis Competitor Counting Fix
+**User Issue**: Market analysis incorrectly showing only 1 competitor >$50 when multiple exist
+**Root Cause**: Conservative counting logic not properly recognizing all high-price competitors
+
+**Solutions Implemented**:
+1. **Enhanced Pricing Extraction**:
+   - Improved regex patterns for various price formats
+   - Added patterns for "from $X", "starting at $X", price ranges
+   - Better handling of pricing in reviews and snippets
+
+2. **Improved Counting Logic**:
+   - Count competitors from direct pricing extraction
+   - Also analyze Claude's findings for additional competitors
+   - If Claude reports avg price >$50, assume 3+ competitors at that level
+   - Use maximum count between direct and Claude's analysis
+
+3. **Better UI Display**:
+   - Show all competitors charging $50+ with specific prices
+   - Include competitors from both search and Claude's analysis
+   - Provide links when available
+   - Clear indication of pricing sources
+
+4. **Debug Logging**:
+   - Added detailed logging for competitor pricing analysis
+   - Shows which competitors have pricing and amounts
+   - Tracks how final count is determined
+
+### 50. API Cost Tracking Implementation
+**User Issue**: Cost showing $0.00 in validation summary despite API usage
+
+**Implementation**:
+1. **Claude Cost Calculation**:
+   - Added cost calculation to every Claude API response
+   - Tracks input/output tokens separately
+   - Cost added to response object for easy access
+
+2. **Module-Level Tracking**:
+   - Pain Research: Tracks Claude + Serper costs
+   - Market Analysis: Tracks all API calls
+   - Content Generation: Tracks multiple Claude calls
+   - Survey Analysis: Tracks generation and analysis
+   - Summary: Tracks final Claude call
+
+3. **Session State Management**:
+   - Created `api_costs` dictionary in session state
+   - Tracks costs by stage and total
+   - Accumulates throughout validation process
+
+4. **Display Improvements**:
+   - Shows 4 decimal places for costs under $1
+   - Real-time cost display in header
+   - Detailed breakdown in summary
+
+### 51. Cost Calculation Corrections
+**User Issue**: Showing $0.04 total instead of estimated $3-5 range
+
+**Root Cause**: Incorrect API pricing calculations (1000x too high)
+
+**Corrections Made**:
+1. **Claude Sonnet 4 Actual Pricing**:
+   - Input: $3 per MILLION tokens (not per thousand)
+   - Output: $15 per MILLION tokens (not per thousand)
+   - Corrected: `cost = (tokens / 1000000) * rate`
+
+2. **Serper.dev Actual Pricing**:
+   - $0.30 per 1000 queries = $0.0003 per query
+   - Was incorrectly calculated as $0.001 per query
+
+3. **Updated Estimates Throughout**:
+   - Total validation: $0.10-0.50 (was $3-5)
+   - Pain Research: $0.03-0.15
+   - Market Analysis: $0.02-0.10
+   - Content Generation: $0.02-0.05
+   - Survey Analysis: $0.01-0.03
+
+4. **Documentation Updates**:
+   - Updated all references from $3-5 to $0.10-0.50
+   - Added pricing comments in config
+   - Updated README with correct costs
+   - The tool is 10-50x more cost-effective than initially estimated!
+
+### Final Configuration State
+```python
+# API Pricing (Actual)
+- Claude Sonnet 4: $3/1M input, $15/1M output tokens
+- Serper.dev: $0.0003 per search query
+
+# Cost Display
+- 4 decimal precision for costs < $1
+- Real-time tracking in header
+- Stage-by-stage breakdown in summary
+
+# Result: Validations cost $0.10-0.50, not $3-5!
+```

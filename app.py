@@ -724,10 +724,37 @@ Format as JSON with keys: viability_score, strengths, risks, next_steps, recomme
         # Pain Research
         st.subheader("Pain Research")
         pain = st.session_state.results.get("pain_research", {})
-        if pain.get("kill_decision"):
-            st.error(f"❌ Failed: {pain.get('kill_reason', 'Unknown')}")
+        
+        # Show threshold evaluations if available
+        if pain.get("threshold_evaluations"):
+            threshold_names = {
+                "easy": "🟢 Easy",
+                "medium": "🟡 Medium", 
+                "difficult": "🔴 Difficult"
+            }
+            threshold_status = []
+            for level in ["easy", "medium", "difficult"]:
+                eval_data = pain["threshold_evaluations"].get(level, {})
+                if eval_data.get("passed"):
+                    threshold_status.append(f"{threshold_names[level]} ✅")
+                else:
+                    threshold_status.append(f"{threshold_names[level]} ❌")
+            
+            st.write(f"**Threshold Results:** {' | '.join(threshold_status)}")
+            st.write(f"**Weighted Complaints:** {pain.get('weighted_complaint_score', 0)}")
+            st.write(f"**Pain Score:** {pain.get('pain_score', 0)}/10")
+            
+            selected_level = st.session_state.get("threshold_level", "medium")
+            if pain.get("kill_decision"):
+                st.error(f"❌ Failed at {threshold_names[selected_level]} level: {pain.get('kill_reason', 'Unknown')}")
+            else:
+                st.success(f"✅ Passed at {threshold_names[selected_level]} level")
         else:
-            st.success(f"✅ Passed: Pain score {pain.get('pain_score', 0)}/10")
+            # Fallback for old format
+            if pain.get("kill_decision"):
+                st.error(f"❌ Failed: {pain.get('kill_reason', 'Unknown')}")
+            else:
+                st.success(f"✅ Passed: Pain score {pain.get('pain_score', 0)}/10")
         
         # Market Analysis
         st.subheader("Market Analysis")

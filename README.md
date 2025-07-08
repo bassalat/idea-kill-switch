@@ -158,40 +158,118 @@ flowchart LR
    - Simple, broad queries for maximum coverage
    - No time filtering to capture all relevant complaints
 
+#### Three-Tier Validation System
+
+The system evaluates problems against three difficulty levels:
+
+##### 🟢 Easy Threshold - "Market Exists"
+- **Purpose**: Validate that SOME people experience this problem
+- **Requirements**:
+  - Weighted Complaints: ≥20
+  - Pain Score: ≥5/10
+- **Use Case**: General validation that the problem exists
+
+##### 🟡 Medium Threshold - "Strong Opportunity" (Default)
+- **Purpose**: Validate sufficient market pain for a viable business
+- **Requirements**:
+  - Weighted Complaints: ≥40
+  - Pain Score: ≥6/10
+  - Quality Rating: Medium or higher
+- **Use Case**: Standard validation for most business ideas
+
+##### 🔴 Difficult Threshold - "Exceptional Problem"
+- **Purpose**: Identify truly pressing, underserved problems
+- **Requirements**:
+  - Weighted Complaints: ≥60
+  - Pain Score: ≥8/10
+  - Urgency: ≥40% actively seeking solutions
+  - Emotional Intensity: ≥30% using strong language
+  - Quality Rating: High
+- **Use Case**: High-confidence validation for venture-scale opportunities
+
+#### Complaint Classification System
+
+All search results are classified into four tiers:
+
+1. **Tier 3 - High-Impact Complaints (Weight: 3x)**
+   - Direct frustration with specific negative impact
+   - Mentions lost time, money, or opportunities
+   - Failed solution attempts
+   - Strong emotional language
+   - Examples: "I've wasted 3 hours every day", "Lost $5k because of this"
+
+2. **Tier 2 - Moderate Complaints (Weight: 2x)**
+   - Clear problem statements
+   - Seeking alternatives
+   - Comparing solutions unfavorably
+   - Examples: "Looking for alternative to X", "Current solutions are too expensive"
+
+3. **Tier 1 - Low-Value Signals (Weight: 1x)**
+   - General questions
+   - Mild inconvenience
+   - Feature requests without emotion
+   - Examples: "How do I do X?", "It would be nice if..."
+
+4. **Tier 0 - Not Complaints (Not counted)**
+   - Promotional content
+   - Tutorials
+   - Positive mentions
+   - Off-topic discussions
+
+#### Weighted Complaint Score
+
+```
+Weighted Score = (Tier 3 × 3) + (Tier 2 × 2) + (Tier 1 × 1)
+
+Quality Multiplier:
+- 1.5x if >30% are Tier 3 complaints
+- 1.2x if >50% are Tier 1+2 complaints
+- 0.8x if >50% are Tier 1 complaints
+
+Effective Complaints = Weighted Score × Quality Multiplier
+```
+
 #### Pain Score Calculation
 
-The pain score (1-10) is calculated by Claude based on:
-
-1. **Volume Factor (40%)**
-   - Number of unique complaints found
-   - Diversity of sources
-   - Recency of complaints
-
-2. **Intensity Factor (30%)**
-   - Emotional language intensity
-   - Frustration indicators
-   - Impact on users' lives/businesses
-
-3. **Urgency Factor (30%)**
-   - Frequency of complaints
-   - Active search for solutions
-   - Willingness to pay indicators
+The pain score (1-10) heavily weights:
+- High-impact complaints (Tier 3)
+- Quality over quantity
+- Emotional intensity and urgency
+- Specific measurable impacts mentioned
 
 #### Example Pain Analysis
 ```json
 {
   "pain_score": 8.5,
-  "complaints_analyzed": 127,
+  "complaint_breakdown": {
+    "tier_3_high_impact": 28,
+    "tier_2_moderate": 45,
+    "tier_1_low_value": 89,
+    "tier_0_not_complaints": 156,
+    "total_analyzed": 318
+  },
+  "weighted_complaint_score": 162,
+  "quality_metrics": {
+    "high_impact_ratio": 0.17,
+    "quality_score": 0.45,
+    "urgency_percentage": 42,
+    "emotional_intensity_percentage": 35,
+    "quality_rating": "high"
+  },
   "themes": [
     "Time-consuming manual process",
     "Costly mistakes due to human error",
     "Lack of integration with existing tools"
   ],
-  "key_quotes": [
+  "high_impact_quotes": [
     "I waste 3 hours every day on this!",
     "Lost $10k last month due to inventory errors"
   ],
-  "is_urgent_problem": true
+  "threshold_evaluations": {
+    "easy": {"passed": true, "reason": ""},
+    "medium": {"passed": true, "reason": ""},
+    "difficult": {"passed": true, "reason": ""}
+  }
 }
 ```
 
@@ -347,10 +425,18 @@ The system analyzes:
 
 ### Kill Decision Thresholds
 
+#### Pain Research Thresholds by Level
+
+| Threshold Level | Weighted Complaints | Pain Score | Quality | Urgency | Emotional |
+|-----------------|-------------------|------------|---------|---------|-----------|
+| 🟢 Easy | ≥ 20 | ≥ 5/10 | Any | - | - |
+| 🟡 Medium (Default) | ≥ 40 | ≥ 6/10 | Medium+ | - | - |
+| 🔴 Difficult | ≥ 60 | ≥ 8/10 | High | ≥ 40% | ≥ 30% |
+
+#### Other Stage Thresholds
+
 | Stage | Metric | Kill Threshold | Pass Threshold |
 |-------|--------|----------------|----------------|
-| Pain Research | Complaints Found | < 30 | ≥ 30 |
-| Pain Research | Pain Score | < 6/10 | ≥ 6/10 |
 | Market Analysis | Competitors at $50+ | < 3 | ≥ 3 |
 | Market Analysis | Opportunity Score | < 6/10 | ≥ 6/10 |
 | Content Testing | Predicted Conversion | < 2% | ≥ 2% |

@@ -22,12 +22,31 @@ SERPER_BASE_URL = "https://google.serper.dev"
 SERPER_SEARCH_LIMIT = 500  # Increased to handle broader searches
 SERPER_TIME_RANGE = "6 months"
 
-# Validation Thresholds
-MIN_COMPLAINTS_REQUIRED = 30  # Reduced since we're analyzing broader discussions
-MIN_PAIN_SCORE = 6  # Slightly reduced to account for indirect pain signals
+# Validation Thresholds - Three Tier System
+# Easy Threshold - "Market Exists"
+EASY_COMPLAINTS_REQUIRED = 20
+EASY_PAIN_SCORE = 5
+EASY_QUALITY_THRESHOLD = "low"  # Accepts any quality complaints
+
+# Medium Threshold - "Strong Opportunity" (Default)
+MEDIUM_COMPLAINTS_REQUIRED = 40  # Increased for weighted system
+MEDIUM_PAIN_SCORE = 6
+MEDIUM_QUALITY_THRESHOLD = "medium"  # Requires moderate quality
+
+# Difficult Threshold - "Exceptional Problem"
+DIFFICULT_COMPLAINTS_REQUIRED = 60  # High bar for weighted complaints
+DIFFICULT_PAIN_SCORE = 8
+DIFFICULT_QUALITY_THRESHOLD = "high"  # Requires high-impact complaints
+DIFFICULT_URGENCY_THRESHOLD = 40  # % actively seeking solutions
+DIFFICULT_EMOTIONAL_THRESHOLD = 30  # % using strong emotional language
+
+# Other validation thresholds
 MIN_COMPETITOR_PRICE = 50
 MIN_SIGNUP_RATE = 0.02
 MIN_WILLINGNESS_TO_PAY = 50
+
+# Default threshold level
+DEFAULT_THRESHOLD_LEVEL = "medium"
 
 # Application Settings
 APP_NAME = "AI-Powered Kill Switch"

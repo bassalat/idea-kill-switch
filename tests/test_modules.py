@@ -91,9 +91,12 @@ class TestPainResearchModule:
         """Test successful pain research."""
         # Mock search results
         mock_serper_instance = Mock()
-        mock_serper_instance.search_complaints.return_value = [
-            {"title": "I hate this problem", "snippet": "It's so frustrating"},
-        ] * 60  # 60 complaints
+        mock_serper_instance.search_complaints.return_value = {
+            "results": [
+                {"title": "I hate this problem", "snippet": "It's so frustrating"},
+            ] * 60,  # 60 complaints
+            "queries": []
+        }
         mock_serper.return_value = mock_serper_instance
         
         # Mock Claude analysis
@@ -104,7 +107,22 @@ class TestPainResearchModule:
                 "themes": ["Theme 1", "Theme 2"],
                 "key_quotes": ["Quote 1"],
                 "is_urgent_problem": True,
-                "analysis_summary": "High pain problem"
+                "analysis_summary": "High pain problem",
+                "complaint_breakdown": {
+                    "tier_3_high_impact": 20,
+                    "tier_2_moderate": 25,
+                    "tier_1_low_value": 15,
+                    "tier_0_not_complaints": 0,
+                    "total_analyzed": 60
+                },
+                "weighted_complaint_score": 110,
+                "quality_metrics": {
+                    "high_impact_ratio": 0.33,
+                    "quality_score": 0.75,
+                    "urgency_percentage": 45,
+                    "emotional_intensity_percentage": 40,
+                    "quality_rating": "high"
+                }
             })
         }
         mock_claude.return_value = mock_claude_instance
@@ -125,10 +143,41 @@ class TestPainResearchModule:
         """Test kill decision for low pain score."""
         # Mock low complaints
         mock_serper_instance = Mock()
-        mock_serper_instance.search_complaints.return_value = [
-            {"title": "Minor issue", "snippet": "Not a big deal"}
-        ] * 30  # Only 30 complaints
+        mock_serper_instance.search_complaints.return_value = {
+            "results": [
+                {"title": "Minor issue", "snippet": "Not a big deal"}
+            ] * 30,  # Only 30 complaints
+            "queries": []
+        }
         mock_serper.return_value = mock_serper_instance
+        
+        # Mock Claude analysis with low scores
+        mock_claude_instance = Mock()
+        mock_claude_instance.generate_response.return_value = {
+            "content": json.dumps({
+                "pain_score": 4,
+                "themes": ["Minor issue"],
+                "key_quotes": ["Not a big deal"],
+                "is_urgent_problem": False,
+                "analysis_summary": "Low pain problem",
+                "complaint_breakdown": {
+                    "tier_3_high_impact": 2,
+                    "tier_2_moderate": 8,
+                    "tier_1_low_value": 20,
+                    "tier_0_not_complaints": 0,
+                    "total_analyzed": 30
+                },
+                "weighted_complaint_score": 38,
+                "quality_metrics": {
+                    "high_impact_ratio": 0.07,
+                    "quality_score": 0.33,
+                    "urgency_percentage": 10,
+                    "emotional_intensity_percentage": 5,
+                    "quality_rating": "low"
+                }
+            })
+        }
+        mock_claude.return_value = mock_claude_instance
         
         # Run module
         module = PainResearchModule()
@@ -136,7 +185,8 @@ class TestPainResearchModule:
         
         # Verify kill decision
         assert results["kill_decision"] is True
-        assert "Only found 30 complaints" in results["kill_reason"]
+        # The kill reason will be based on the medium threshold by default
+        assert "Weighted complaints: 38/40" in results["kill_reason"] or "Pain score: 4" in results["kill_reason"]
 
 
 class TestMarketAnalysisModule:

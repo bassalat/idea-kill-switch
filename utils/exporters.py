@@ -352,11 +352,85 @@ class ReportExporter:
         elements.append(Paragraph("Pain Research Analysis", styles['SectionHeader']))
         elements.append(Spacer(1, 0.2*inch))
         
+        # Three-tier threshold evaluation if available
+        if data.get('threshold_evaluations'):
+            elements.append(Paragraph("Threshold Evaluation Results", styles['Subsection']))
+            
+            threshold_data = [['Threshold Level', 'Status', 'Complaints', 'Pain Score', 'Details']]
+            
+            for level in ['easy', 'medium', 'difficult']:
+                eval_data = data['threshold_evaluations'].get(level, {})
+                criteria = eval_data.get('criteria', {})
+                
+                level_names = {
+                    'easy': '🟢 Easy (Market Exists)',
+                    'medium': '🟡 Medium (Strong Opportunity)',
+                    'difficult': '🔴 Difficult (Exceptional Problem)'
+                }
+                
+                status = "✅ PASS" if eval_data.get('passed') else "❌ FAIL"
+                complaints = f"{criteria.get('actual_complaints', 0)}/{criteria.get('complaints_required', 0)}"
+                pain_score = f"{criteria.get('actual_pain_score', 0):.1f}/{criteria.get('pain_score_required', 0)}"
+                
+                details = ""
+                if level == 'difficult':
+                    details = f"Urgency: {criteria.get('actual_urgency', 0):.0f}%, Emotional: {criteria.get('actual_emotional', 0):.0f}%"
+                
+                threshold_data.append([level_names[level], status, complaints, pain_score, details])
+            
+            threshold_table = Table(threshold_data, colWidths=[2.2*inch, 0.8*inch, 1.2*inch, 1.2*inch, 2.1*inch])
+            threshold_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#333333')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ]))
+            
+            elements.append(threshold_table)
+            elements.append(Spacer(1, 0.3*inch))
+        
+        # Complaint breakdown if available
+        if data.get('complaint_breakdown'):
+            elements.append(Paragraph("Complaint Quality Analysis", styles['Subsection']))
+            
+            breakdown = data['complaint_breakdown']
+            quality_data = [
+                ['Category', 'Count', 'Percentage'],
+                ['🔴 High-Impact Complaints', str(breakdown.get('tier_3_high_impact', 0)), 
+                 f"{(breakdown.get('tier_3_high_impact', 0) / max(breakdown.get('total_analyzed', 1), 1)) * 100:.1f}%"],
+                ['🟡 Moderate Complaints', str(breakdown.get('tier_2_moderate', 0)),
+                 f"{(breakdown.get('tier_2_moderate', 0) / max(breakdown.get('total_analyzed', 1), 1)) * 100:.1f}%"],
+                ['🟢 Low-Value Signals', str(breakdown.get('tier_1_low_value', 0)),
+                 f"{(breakdown.get('tier_1_low_value', 0) / max(breakdown.get('total_analyzed', 1), 1)) * 100:.1f}%"],
+                ['⚪ Not Complaints', str(breakdown.get('tier_0_not_complaints', 0)),
+                 f"{(breakdown.get('tier_0_not_complaints', 0) / max(breakdown.get('total_analyzed', 1), 1)) * 100:.1f}%"]
+            ]
+            
+            quality_table = Table(quality_data, colWidths=[3*inch, 1.5*inch, 1.5*inch])
+            quality_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F0F0F0')),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            
+            elements.append(quality_table)
+            elements.append(Spacer(1, 0.3*inch))
+        
         # Summary metrics
         metrics_table_data = [
             ['Pain Score', f"{data.get('pain_score', 0)}/10"],
-            ['Complaints Analyzed', str(data.get('complaints_analyzed', 0))],
-            ['Is Urgent Problem', "Yes" if data.get('is_urgent_problem') else "No"],
+            ['Weighted Complaints', str(data.get('weighted_complaint_score', 0))],
+            ['Quality Rating', data.get('quality_metrics', {}).get('quality_rating', 'Unknown').upper()],
             ['Kill Decision', "Yes" if data.get('kill_decision') else "No"]
         ]
         
