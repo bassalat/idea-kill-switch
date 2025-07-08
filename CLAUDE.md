@@ -126,7 +126,12 @@ kill_switch/
 
 **IMPORTANT:** Always use the `venv_killswitch` conda environment when working with Python in this project.
 
+**Note:** This project uses Miniconda installed at `/Users/bassalat/opt/miniconda3/`
+
 ```bash
+# First, source the conda initialization script
+source /Users/bassalat/opt/miniconda3/etc/profile.d/conda.sh
+
 # Create conda environment if it doesn't exist
 conda create -n venv_killswitch python=3.10 -y
 
@@ -139,10 +144,20 @@ pip install -r requirements.txt
 # Note: .env file with API keys for Claude and Serper.dev is already configured
 ```
 
+**For all Python commands in this project:**
+```bash
+# Always activate the environment first
+source /Users/bassalat/opt/miniconda3/etc/profile.d/conda.sh && conda activate venv_killswitch
+
+# Then run your Python commands
+python app.py
+pytest tests/
+```
+
 ### Running the Application:
 ```bash
-# Ensure you're in the conda environment
-conda activate venv_killswitch
+# Activate the conda environment
+source /Users/bassalat/opt/miniconda3/etc/profile.d/conda.sh && conda activate venv_killswitch
 
 # Run the Streamlit app
 streamlit run app.py
@@ -150,11 +165,17 @@ streamlit run app.py
 
 ### Testing:
 ```bash
-# Ensure you're in the conda environment
-conda activate venv_killswitch
+# Activate the conda environment
+source /Users/bassalat/opt/miniconda3/etc/profile.d/conda.sh && conda activate venv_killswitch
 
 # Run tests
 pytest tests/
+
+# Run specific test file
+pytest tests/test_modules.py -v
+
+# Run with coverage
+pytest tests/ --cov=. --cov-report=html
 ```
 
 ## Important Considerations
@@ -179,12 +200,30 @@ pytest tests/
 
 ## Validation Criteria
 
-Each module has specific "kill" criteria:
+### Pain Research - Three-Tier System:
 
-1. **Pain Research:** < 50 complaints or pain score < 7/10
-2. **Market Analysis:** No competitors charging $50+ or no evidence of payments
-3. **Content Testing:** < 2% signup conversion rate
-4. **Survey Analysis:** Average WTP < $50/month
+1. **🟢 Easy (Market Exists):** 
+   - Weighted complaints ≥ 20
+   - Pain score ≥ 5/10
+   - Any quality level
+
+2. **🟡 Medium (Strong Opportunity) - Default:**
+   - Weighted complaints ≥ 40
+   - Pain score ≥ 6/10
+   - Quality rating: Medium or higher
+
+3. **🔴 Difficult (Exceptional Problem):**
+   - Weighted complaints ≥ 60
+   - Pain score ≥ 8/10
+   - Quality rating: High
+   - Urgency ≥ 40%
+   - Emotional intensity ≥ 30%
+
+### Other Module Criteria:
+
+1. **Market Analysis:** < 3 competitors charging $50+ = KILL
+2. **Content Testing:** < 2% predicted conversion rate = KILL
+3. **Survey Analysis:** Average WTP < $50/month = KILL
 
 ## Future Enhancements
 
@@ -211,6 +250,9 @@ Each module has specific "kill" criteria:
 ## Commands to Run
 
 ```bash
+# Always activate the environment first
+source /Users/bassalat/opt/miniconda3/etc/profile.d/conda.sh && conda activate venv_killswitch
+
 # Linting
 ruff check .
 
@@ -219,4 +261,10 @@ mypy .
 
 # Format code
 black .
+
+# Run the application
+streamlit run app.py
+
+# Run tests
+pytest tests/ -v
 ```
