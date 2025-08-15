@@ -312,7 +312,7 @@ def pain_research_stage():
                 st.error("🔥 **Firecrawl API Key Required**: Deep analysis requires a Firecrawl API key. Please add FIRECRAWL_API_KEY to your .env file.")
                 use_deep_analysis = False
             else:
-                st.info("🔥 **Deep Analysis Enabled**: Will scrape ~20-30 URLs for full content analysis. Estimated additional cost: $0.20-0.30")
+                st.info("🔥 **Deep Analysis Enabled**: Will scrape up to 75 URLs for comprehensive content analysis. Estimated additional cost: $0.50-0.75")
         
         st.caption("💡 Tip: If you're getting few results, try 'Reddit Focused' strategy or rephrase your problem as what users complain about.")
     

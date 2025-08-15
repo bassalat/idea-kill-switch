@@ -27,7 +27,9 @@ SERPER_TIME_RANGE = "6 months"
 FIRECRAWL_BASE_URL = "https://api.firecrawl.dev/v1"
 # Pricing: $0.01 per URL scrape
 FIRECRAWL_BATCH_SIZE = int(os.getenv("FIRECRAWL_BATCH_SIZE", "10"))  # URLs per batch
-FIRECRAWL_MAX_URLS = int(os.getenv("FIRECRAWL_MAX_URLS", "30"))  # Max URLs to scrape per module
+FIRECRAWL_MAX_URLS = int(os.getenv("FIRECRAWL_MAX_URLS", "30"))  # Max URLs to scrape per module (general)
+FIRECRAWL_PAIN_RESEARCH_MAX_URLS = int(os.getenv("FIRECRAWL_PAIN_RESEARCH_MAX_URLS", "75"))  # Higher limit for pain research
+FIRECRAWL_MARKET_ANALYSIS_MAX_URLS = int(os.getenv("FIRECRAWL_MARKET_ANALYSIS_MAX_URLS", "25"))  # Lower limit for market analysis
 FIRECRAWL_TIMEOUT = 30000  # ms
 FIRECRAWL_WAIT_FOR = 3000  # ms
 

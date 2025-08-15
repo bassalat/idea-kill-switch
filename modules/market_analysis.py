@@ -253,10 +253,11 @@ class MarketAnalysisModule:
                     if progress_callback:
                         progress_callback("🔥 Scraping competitor websites for detailed analysis...")
                     
-                    # Get enhanced results with scraped content
+                    # Get enhanced results with scraped content (market analysis gets fewer URLs)
                     competitors = self.firecrawl_client.get_scraped_content_for_analysis(
                         competitors, 
-                        progress_callback
+                        progress_callback,
+                        module_type="market_analysis"
                     )
                     
                     # Track Firecrawl API cost

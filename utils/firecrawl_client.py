@@ -12,6 +12,8 @@ from config.settings import (
     FIRECRAWL_BASE_URL,
     FIRECRAWL_BATCH_SIZE,
     FIRECRAWL_MAX_URLS,
+    FIRECRAWL_PAIN_RESEARCH_MAX_URLS,
+    FIRECRAWL_MARKET_ANALYSIS_MAX_URLS,
     MAX_RETRIES,
     RETRY_DELAY,
     REQUEST_TIMEOUT
@@ -171,7 +173,8 @@ class FirecrawlClient:
     def batch_scrape_urls(
         self, 
         urls: List[str], 
-        progress_callback: Optional[callable] = None
+        progress_callback: Optional[callable] = None,
+        max_urls: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Scrape multiple URLs using batch API or sequential scraping."""
         if not urls:
@@ -181,8 +184,9 @@ class FirecrawlClient:
         scrapeable_urls = [url for url in urls if self._is_scrapeable_url(url)]
         prioritized_urls = self._prioritize_urls(scrapeable_urls)
         
-        # Limit to max URLs
-        urls_to_scrape = prioritized_urls[:FIRECRAWL_MAX_URLS]
+        # Limit to max URLs (use provided limit or default)
+        effective_max_urls = max_urls if max_urls is not None else FIRECRAWL_MAX_URLS
+        urls_to_scrape = prioritized_urls[:effective_max_urls]
         
         print(f"DEBUG: Filtering {len(urls)} URLs -> {len(scrapeable_urls)} scrapeable -> {len(urls_to_scrape)} to scrape")
         
@@ -297,7 +301,8 @@ class FirecrawlClient:
     def get_scraped_content_for_analysis(
         self, 
         search_results: List[Dict[str, Any]], 
-        progress_callback: Optional[callable] = None
+        progress_callback: Optional[callable] = None,
+        module_type: str = "general"
     ) -> List[Dict[str, Any]]:
         """
         Enhanced method to get scraped content optimized for analysis.
@@ -314,10 +319,18 @@ class FirecrawlClient:
         if not urls:
             return search_results
         
-        if progress_callback:
-            progress_callback(f"Preparing to scrape {len(urls)} URLs for deeper analysis...")
+        # Determine max URLs based on module type
+        if module_type == "pain_research":
+            max_urls = FIRECRAWL_PAIN_RESEARCH_MAX_URLS
+        elif module_type == "market_analysis":
+            max_urls = FIRECRAWL_MARKET_ANALYSIS_MAX_URLS
+        else:
+            max_urls = FIRECRAWL_MAX_URLS
         
-        scraped_results = self.batch_scrape_urls(urls, progress_callback)
+        if progress_callback:
+            progress_callback(f"Preparing to scrape up to {max_urls} URLs for deeper analysis...")
+        
+        scraped_results = self.batch_scrape_urls(urls, progress_callback, max_urls)
         
         # Create a mapping of URL to scraped content
         scraped_map = {result["url"]: result for result in scraped_results}

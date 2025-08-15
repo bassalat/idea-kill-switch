@@ -92,7 +92,7 @@ class PainResearchModule:
             if progress_callback:
                 progress_callback("Analyzing complaint patterns and urgency...")
             
-            analysis = self._analyze_complaints(complaints, problem_description)
+            analysis = self._analyze_complaints(complaints, problem_description, use_deep_analysis)
             
             # Update results with analysis
             results.update(analysis)
@@ -176,10 +176,11 @@ class PainResearchModule:
                         if progress_callback:
                             progress_callback("🔥 Scraping full content for deeper analysis...")
                         
-                        # Get enhanced results with scraped content
+                        # Get enhanced results with scraped content (pain research gets more URLs)
                         complaints = self.firecrawl_client.get_scraped_content_for_analysis(
                             complaints, 
-                            progress_callback
+                            progress_callback,
+                            module_type="pain_research"
                         )
                         
                         # Track Firecrawl API cost (estimate based on successful scrapes)
@@ -232,13 +233,15 @@ class PainResearchModule:
     def _analyze_complaints(
         self,
         complaints: List[Dict[str, Any]],
-        problem: str
+        problem: str,
+        use_deep_analysis: bool = False
     ) -> Dict[str, Any]:
         """Analyze complaints using Claude."""
         try:
-            # Prepare complaints for analysis - limit to avoid token limits
+            # Prepare complaints for analysis - with enhanced content, we can analyze more
             complaints_for_analysis = []
-            max_complaints = min(30, len(complaints))  # Reduced from 50 to 30
+            # Increase limit when using deep analysis since we have richer content
+            max_complaints = min(50 if use_deep_analysis else 30, len(complaints))
             
             for c in complaints[:max_complaints]:
                 # Use full content if available from Firecrawl, otherwise fallback to snippet
@@ -640,9 +643,42 @@ class PainResearchModule:
                     else:
                         st.caption("LOW = Mostly questions or minor inconveniences")
         
+        # Deep Analysis Summary (if used)
+        scraped_complaints = [c for c in results.get("sample_complaints", []) if c.get("content_available")]
+        if scraped_complaints:
+            with st.expander("🔥 Deep Content Analysis Summary", expanded=True):
+                total_analyzed = len(results.get("sample_complaints", []))
+                scraped_count = len(scraped_complaints)
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total URLs Found", total_analyzed)
+                with col2:
+                    st.metric("Successfully Scraped", scraped_count)
+                with col3:
+                    scraping_success_rate = (scraped_count / total_analyzed * 100) if total_analyzed > 0 else 0
+                    st.metric("Scraping Success Rate", f"{scraping_success_rate:.1f}%")
+                
+                # Show source breakdown for scraped content
+                source_breakdown = {}
+                for complaint in scraped_complaints:
+                    source = complaint.get("source", "Unknown")
+                    source_breakdown[source] = source_breakdown.get(source, 0) + 1
+                
+                st.write("**Scraped Content by Source:**")
+                for source, count in sorted(source_breakdown.items(), key=lambda x: x[1], reverse=True):
+                    st.write(f"• {source}: {count} successfully scraped")
+                
+                # Show average content length
+                content_lengths = [len(c.get("full_content", "")) for c in scraped_complaints if c.get("full_content")]
+                if content_lengths:
+                    avg_length = sum(content_lengths) / len(content_lengths)
+                    st.write(f"**Average scraped content length:** {avg_length:.0f} characters")
+                    st.write(f"**Total content analyzed:** {sum(content_lengths):,} characters")
+        
         # Show search queries performed
         if self.search_queries:
-            with st.expander("🔍 Search Queries Performed", expanded=True):
+            with st.expander("🔍 Search Queries Performed", expanded=False):
                 # Check if AI queries were used (queries will be more sophisticated)
                 ai_queries_used = any(
                     'site:reddit.com/r/' in q.get('query', '') or 
@@ -715,13 +751,45 @@ class PainResearchModule:
             for quote in results["key_quotes"][:5]:
                 st.info(f'"{quote}"')
         
-        # Sample Complaints
+        # Enhanced Sample Complaints Display
         if results.get("sample_complaints"):
-            with st.expander("View Sample Complaints"):
-                for complaint in results["sample_complaints"][:10]:
-                    st.write(f"**{complaint.get('title', 'No title')}**")
-                    st.write(complaint.get('snippet', 'No snippet'))
-                    st.write(f"Source: {complaint.get('source', 'Unknown')}")
+            # Count scraped vs non-scraped content
+            scraped_count = len([c for c in results["sample_complaints"] if c.get("content_available")])
+            total_count = len(results["sample_complaints"])
+            
+            with st.expander(f"View Sample Complaints ({scraped_count}/{total_count} scraped with full content)", expanded=False):
+                for i, complaint in enumerate(results["sample_complaints"][:15], 1):  # Show more complaints
+                    # Enhanced display with scraped content indicator
+                    title = complaint.get('title', 'No title')
+                    source = complaint.get('source', 'Unknown')
+                    
+                    if complaint.get("content_available"):
+                        # Show scraped content
+                        st.success(f"🔥 **#{i}. {title}** (Full Content Scraped)")
+                        st.write(f"**Source:** {source}")
+                        
+                        # Show a preview of the scraped content
+                        full_content = complaint.get('full_content', '')
+                        if full_content:
+                            # Show first 300 chars of scraped content
+                            preview = full_content[:300] + "..." if len(full_content) > 300 else full_content
+                            st.write(f"**Scraped Content Preview:** {preview}")
+                        
+                        # Also show original snippet for comparison
+                        snippet = complaint.get('snippet', 'No snippet')
+                        st.caption(f"**Original Snippet:** {snippet}")
+                    else:
+                        # Show regular snippet-only content
+                        st.info(f"📄 **#{i}. {title}** (Snippet Only)")
+                        st.write(f"**Source:** {source}")
+                        snippet = complaint.get('snippet', 'No snippet')
+                        st.write(f"**Content:** {snippet}")
+                        
+                        # Show scraping error if available
+                        if complaint.get('scrape_error'):
+                            st.caption(f"🚫 Scraping failed: {complaint['scrape_error']}")
+                    
                     if complaint.get('link'):
                         st.write(f"[View Original]({complaint['link']})")
+                    
                     st.divider()
