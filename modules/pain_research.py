@@ -145,13 +145,16 @@ class PainResearchModule:
             # Track Serper API cost ($0.0003 per search query)
             try:
                 import streamlit as st
-                if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                if (hasattr(st, 'session_state') and 
+                    hasattr(st.session_state, '__dict__') and
+                    "api_costs" in st.session_state):
                     # 60 queries at $0.0003 each
                     serper_cost = 60 * 0.0003
                     st.session_state.api_costs["pain_research"] += serper_cost
                     st.session_state.api_costs["total"] += serper_cost
-            except:
+            except Exception as e:
                 # If session state is not available, skip cost tracking
+                print(f"DEBUG: Skipping cost tracking: {str(e)}")
                 pass
             raw_results = search_data["results"]
             self.search_queries = search_data["queries"]  # Store for display
@@ -189,11 +192,14 @@ class PainResearchModule:
                         
                         try:
                             import streamlit as st
-                            if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                            if (hasattr(st, 'session_state') and 
+                                hasattr(st.session_state, '__dict__') and
+                                "api_costs" in st.session_state):
                                 st.session_state.api_costs["pain_research"] += firecrawl_cost
                                 st.session_state.api_costs["total"] += firecrawl_cost
-                        except:
+                        except Exception as e:
                             # If session state is not available, skip cost tracking
+                            print(f"DEBUG: Skipping Firecrawl cost tracking: {str(e)}")
                             pass
                         
                         print(f"DEBUG: Scraped {scraped_count} URLs for enhanced analysis")
@@ -281,11 +287,14 @@ class PainResearchModule:
             if "cost" in response:
                 try:
                     import streamlit as st
-                    if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                    if (hasattr(st, 'session_state') and 
+                        hasattr(st.session_state, '__dict__') and
+                        "api_costs" in st.session_state):
                         st.session_state.api_costs["pain_research"] += response["cost"]
                         st.session_state.api_costs["total"] += response["cost"]
-                except:
+                except Exception as e:
                     # If session state is not available, skip cost tracking
+                    print(f"DEBUG: Skipping Claude cost tracking: {str(e)}")
                     pass
             
             # Parse response

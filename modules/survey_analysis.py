@@ -62,11 +62,14 @@ class SurveyAnalysisModule:
             if "cost" in response:
                 try:
                     import streamlit as st
-                    if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                    if (hasattr(st, 'session_state') and 
+                        hasattr(st.session_state, '__dict__') and
+                        "api_costs" in st.session_state):
                         st.session_state.api_costs["survey_analysis"] += response["cost"]
                         st.session_state.api_costs["total"] += response["cost"]
-                except:
+                except Exception as e:
                     # If session state is not available, skip cost tracking
+                    print(f"DEBUG: Skipping survey analysis cost tracking: {str(e)}")
                     pass
             
             try:
@@ -147,11 +150,14 @@ class SurveyAnalysisModule:
             if "cost" in response:
                 try:
                     import streamlit as st
-                    if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                    if (hasattr(st, 'session_state') and 
+                        hasattr(st.session_state, '__dict__') and
+                        "api_costs" in st.session_state):
                         st.session_state.api_costs["survey_analysis"] += response["cost"]
                         st.session_state.api_costs["total"] += response["cost"]
-                except:
+                except Exception as e:
                     # If session state is not available, skip cost tracking
+                    print(f"DEBUG: Skipping survey analysis cost tracking: {str(e)}")
                     pass
             
             try:
