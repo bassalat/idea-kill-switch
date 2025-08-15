@@ -75,6 +75,9 @@ def init_session_state():
             "survey_analysis": 0,
             "total": 0
         }
+    
+    if "use_deep_analysis" not in st.session_state:
+        st.session_state.use_deep_analysis = True
 
 
 def check_api_keys():
@@ -102,7 +105,8 @@ def display_header():
             else:
                 st.metric("💰 Current Cost", f"${total_cost:.2f}")
         else:
-            st.caption("💰 Est. cost: $0.10-0.50 per validation")
+            # Show estimated cost including deep analysis since it's enabled by default
+            st.caption("💰 Est. cost: $0.60-1.25 per validation (with deep analysis)")
         
         if st.button("🔄 Start New Validation", use_container_width=True, key="header_new_validation"):
             st.session_state.clear()
@@ -162,16 +166,17 @@ def input_stage():
             st.markdown("""
             **Estimated API Costs per Validation:**
             - Claude API: ~$0.05-0.30
-            - Serper.dev API: ~$0.03-0.05
-            - **Total: $0.10-0.50 per complete validation**
+            - Serper.dev API: ~$0.03-0.05  
+            - Firecrawl API: ~$0.50-0.75 (deep analysis enabled)
+            - **Total: $0.60-1.25 per complete validation**
             
-            *Costs may vary based on problem complexity and search results*
+            *Deep content analysis provides 10x richer data for better validation*
             """)
         with col2:
             st.markdown("""
             **Cost Breakdown by Stage:**
-            - Pain Research: ~$0.03-0.15
-            - Market Analysis: ~$0.02-0.10
+            - Pain Research: ~$0.53-0.90 (includes deep scraping)
+            - Market Analysis: ~$0.17-0.35 (includes competitor scraping)
             - Content Generation: ~$0.02-0.05
             - Survey Analysis: ~$0.01-0.03
             """)
@@ -294,8 +299,8 @@ def pain_research_stage():
             
             use_deep_analysis = st.checkbox(
                 "Enable Deep Content Analysis (🔥 Firecrawl)", 
-                value=False,
-                help="Scrapes full content from search results for deeper analysis. Provides 10x more context but costs ~$0.20-0.30 extra per validation."
+                value=True,
+                help="Scrapes full content from search results for deeper analysis. Provides 10x more context but costs ~$0.50-0.75 extra per validation."
             )
         
         with col2:
@@ -312,7 +317,7 @@ def pain_research_stage():
                 st.error("🔥 **Firecrawl API Key Required**: Deep analysis requires a Firecrawl API key. Please add FIRECRAWL_API_KEY to your .env file.")
                 use_deep_analysis = False
             else:
-                st.info("🔥 **Deep Analysis Enabled**: Will scrape up to 75 URLs for comprehensive content analysis. Estimated additional cost: $0.50-0.75")
+                st.info("🔥 **Deep Analysis Enabled**: Will scrape up to 75 URLs for comprehensive content analysis. Provides 10x richer data for accurate pain validation.")
         
         st.caption("💡 Tip: If you're getting few results, try 'Reddit Focused' strategy or rephrase your problem as what users complain about.")
     
@@ -434,8 +439,8 @@ def market_analysis_stage():
     # Get pain points from previous stage
     pain_points = st.session_state.results.get("pain_research", {}).get("themes", [])
     
-    # Check if deep analysis was used in pain research (inherit setting)
-    use_deep_analysis = st.session_state.get("use_deep_analysis", False)
+    # Check if deep analysis was used in pain research (inherit setting, default to True)
+    use_deep_analysis = st.session_state.get("use_deep_analysis", True)
     
     # Run analysis
     with st.spinner("Analyzing market..."):
