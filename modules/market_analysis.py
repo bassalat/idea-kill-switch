@@ -286,12 +286,16 @@ class MarketAnalysisModule:
                 # Extract pricing info if available (enhanced with scraped content)
                 pricing_info = self._extract_pricing(comp, reviews, use_deep_analysis)
                 
+                # Extract additional competitive intelligence from scraped content
+                competitive_intel = self._extract_competitive_intelligence(comp, use_deep_analysis)
+                
                 enriched_comp = {
                     **comp,
                     "reviews_found": len(reviews),
                     "avg_rating": self._calculate_avg_rating(reviews),
                     "pricing": pricing_info,
-                    "sample_reviews": reviews[:3]
+                    "sample_reviews": reviews[:3],
+                    "competitive_intel": competitive_intel
                 }
                 
                 enriched.append(enriched_comp)
@@ -301,6 +305,108 @@ class MarketAnalysisModule:
                 enriched.append(comp)
         
         return enriched
+    
+    def _extract_competitive_intelligence(
+        self,
+        competitor: Dict[str, Any],
+        use_deep_analysis: bool = False
+    ) -> Dict[str, Any]:
+        """Extract competitive intelligence from competitor data and scraped content."""
+        intel = {
+            "key_features": [],
+            "target_market": "Unknown",
+            "company_stage": "Unknown",
+            "value_propositions": [],
+            "integration_mentions": [],
+            "content_quality": "Unknown"
+        }
+        
+        # Get all available text content
+        all_text = f"{competitor.get('description', '')} {competitor.get('title', '')} {competitor.get('snippet', '')}"
+        
+        # Add scraped content if available from deep analysis
+        if use_deep_analysis and competitor.get("content_available") and competitor.get("full_content"):
+            scraped_content = competitor.get("full_content", "")
+            all_text = scraped_content + " " + all_text
+            intel["content_quality"] = "Scraped"
+            print(f"DEBUG: Using scraped content for competitive intel: {competitor.get('name', 'Unknown')}")
+        else:
+            intel["content_quality"] = "Snippet-only"
+        
+        if not all_text.strip():
+            return intel
+        
+        # Extract key features
+        feature_patterns = [
+            r'features?[:\s]*([^.!?]*)', r'capabilities?[:\s]*([^.!?]*)',
+            r'includes?[:\s]*([^.!?]*)', r'offers?[:\s]*([^.!?]*)',
+            r'provides?[:\s]*([^.!?]*)', r'supports?[:\s]*([^.!?]*)'
+        ]
+        
+        for pattern in feature_patterns:
+            import re
+            matches = re.findall(pattern, all_text, re.IGNORECASE)
+            for match in matches[:3]:  # Limit to avoid noise
+                clean_match = match.strip()[:100]  # Limit length
+                if len(clean_match) > 10 and clean_match not in intel["key_features"]:
+                    intel["key_features"].append(clean_match)
+        
+        # Extract target market indicators
+        market_indicators = {
+            "Enterprise": ["enterprise", "large companies", "corporations", "big business"],
+            "SMB": ["small business", "medium business", "smb", "startup", "small company"],
+            "Agency": ["agency", "agencies", "marketing team", "creative team"],
+            "E-commerce": ["ecommerce", "e-commerce", "online store", "shopify", "retail"],
+            "SaaS": ["saas", "software companies", "tech companies", "developers"],
+            "Freelancer": ["freelancer", "independent", "solo", "individual"]
+        }
+        
+        text_lower = all_text.lower()
+        for market, keywords in market_indicators.items():
+            if any(keyword in text_lower for keyword in keywords):
+                intel["target_market"] = market
+                break
+        
+        # Extract company stage indicators
+        stage_indicators = {
+            "Startup": ["startup", "founded 20", "new company", "emerging"],
+            "Growth": ["growing", "expanding", "scaling", "series a", "series b"],
+            "Established": ["established", "leader", "leading", "years of experience", "since 19", "since 20"],
+            "Enterprise": ["fortune 500", "global", "worldwide", "multinational"]
+        }
+        
+        for stage, keywords in stage_indicators.items():
+            if any(keyword in text_lower for keyword in keywords):
+                intel["company_stage"] = stage
+                break
+        
+        # Extract value propositions
+        value_patterns = [
+            r'(save[s]? [\w\s]{5,30})', r'(reduce[s]? [\w\s]{5,30})',
+            r'(increase[s]? [\w\s]{5,30})', r'(improve[s]? [\w\s]{5,30})',
+            r'(automate[s]? [\w\s]{5,30})', r'(streamline[s]? [\w\s]{5,30})'
+        ]
+        
+        for pattern in value_patterns:
+            matches = re.findall(pattern, all_text, re.IGNORECASE)
+            for match in matches[:2]:  # Limit to avoid noise
+                clean_match = match.strip()[:80]
+                if len(clean_match) > 10 and clean_match not in intel["value_propositions"]:
+                    intel["value_propositions"].append(clean_match)
+        
+        # Extract integration mentions
+        integration_keywords = [
+            "api", "integration", "webhook", "zapier", "salesforce", "hubspot",
+            "slack", "teams", "google", "microsoft", "aws", "azure"
+        ]
+        
+        for keyword in integration_keywords:
+            if keyword in text_lower and keyword not in intel["integration_mentions"]:
+                intel["integration_mentions"].append(keyword.upper())
+                if len(intel["integration_mentions"]) >= 5:  # Limit to avoid noise
+                    break
+        
+        return intel
     
     def _extract_pricing(
         self,
@@ -527,13 +633,44 @@ class MarketAnalysisModule:
                 
                 analysis = json.loads(content)
                 
-                # Ensure required fields
+                # Ensure required fields with backward compatibility
                 if "avg_pricing" not in analysis:
                     analysis["avg_pricing"] = {
                         "monthly_low": 0,
                         "monthly_high": 0,
                         "monthly_average": 0
                     }
+                
+                # Ensure new enhanced fields have defaults
+                if "market_maturity" not in analysis:
+                    analysis["market_maturity"] = "Unknown"
+                
+                if "pricing_models" not in analysis:
+                    analysis["pricing_models"] = []
+                
+                if "market_segments" not in analysis:
+                    analysis["market_segments"] = {
+                        "primary": "Unknown",
+                        "secondary": "Unknown", 
+                        "emerging": "Unknown"
+                    }
+                
+                if "competitive_landscape" not in analysis:
+                    analysis["competitive_landscape"] = {
+                        "direct_competitors": 0,
+                        "indirect_competitors": 0,
+                        "market_leaders": [],
+                        "emerging_players": []
+                    }
+                
+                if "technology_trends" not in analysis:
+                    analysis["technology_trends"] = []
+                
+                if "barriers_to_entry" not in analysis:
+                    analysis["barriers_to_entry"] = []
+                
+                if "growth_indicators" not in analysis:
+                    analysis["growth_indicators"] = []
                 
                 return analysis
                 
@@ -543,21 +680,35 @@ class MarketAnalysisModule:
                 
                 return {
                     "market_size": "Unable to determine",
+                    "market_maturity": "Unknown",
                     "avg_pricing": {"monthly_low": 0, "monthly_high": 0, "monthly_average": 0},
+                    "pricing_models": [],
                     "gaps": ["Analysis failed"],
                     "opportunity_score": 0,
                     "insights": "Failed to parse analysis",
-                    "top_competitors": []
+                    "top_competitors": [],
+                    "market_segments": {"primary": "Unknown", "secondary": "Unknown", "emerging": "Unknown"},
+                    "competitive_landscape": {"direct_competitors": 0, "indirect_competitors": 0, "market_leaders": [], "emerging_players": []},
+                    "technology_trends": [],
+                    "barriers_to_entry": [],
+                    "growth_indicators": []
                 }
                 
         except Exception as e:
             return {
                 "market_size": "Error",
+                "market_maturity": "Unknown",
                 "avg_pricing": {"monthly_low": 0, "monthly_high": 0, "monthly_average": 0},
+                "pricing_models": [],
                 "gaps": [f"Error: {str(e)}"],
                 "opportunity_score": 0,
                 "insights": f"Analysis error: {str(e)}",
-                "top_competitors": []
+                "top_competitors": [],
+                "market_segments": {"primary": "Unknown", "secondary": "Unknown", "emerging": "Unknown"},
+                "competitive_landscape": {"direct_competitors": 0, "indirect_competitors": 0, "market_leaders": [], "emerging_players": []},
+                "technology_trends": [],
+                "barriers_to_entry": [],
+                "growth_indicators": []
             }
     
     def display_results(self, results: Dict[str, Any]):
@@ -614,8 +765,84 @@ class MarketAnalysisModule:
                 else:
                     st.write(f"  • **{comp['name']}**: ${comp['price']}/month{source}")
         
+        # Enhanced Market Intelligence
+        st.subheader("🎯 Market Intelligence Dashboard")
+        
+        # Market maturity and segments
+        col1, col2 = st.columns(2)
+        with col1:
+            if results.get("market_maturity"):
+                maturity_colors = {
+                    "emerging": "🟡",
+                    "growing": "🟢", 
+                    "mature": "🔵",
+                    "saturated": "🔴"
+                }
+                maturity = results["market_maturity"]
+                color = maturity_colors.get(maturity.lower(), "⚪")
+                st.write(f"**📈 Market Maturity:** {color} {maturity.title()}")
+            
+            # Market segments
+            if results.get("market_segments"):
+                segments = results["market_segments"]
+                st.write("**🎯 Target Segments:**")
+                if segments.get("primary"):
+                    st.write(f"• Primary: {segments['primary']}")
+                if segments.get("secondary"):
+                    st.write(f"• Secondary: {segments['secondary']}")
+                if segments.get("emerging"):
+                    st.write(f"• Emerging: {segments['emerging']}")
+        
+        with col2:
+            # Competitive landscape
+            if results.get("competitive_landscape"):
+                landscape = results["competitive_landscape"]
+                st.write("**🏆 Competitive Landscape:**")
+                if landscape.get("direct_competitors"):
+                    st.write(f"• Direct competitors: {landscape['direct_competitors']}")
+                if landscape.get("indirect_competitors"):
+                    st.write(f"• Indirect competitors: {landscape['indirect_competitors']}")
+                
+                if landscape.get("market_leaders"):
+                    leaders = landscape["market_leaders"]
+                    st.write(f"• Market leaders: {', '.join(leaders[:3])}")
+        
+        # Pricing models and technology trends
+        col1, col2 = st.columns(2)
+        with col1:
+            if results.get("pricing_models"):
+                models = results["pricing_models"]
+                st.write("**💰 Pricing Models:**")
+                for model in models[:4]:
+                    st.write(f"• {model.title()}")
+        
+        with col2:
+            if results.get("technology_trends"):
+                trends = results["technology_trends"]
+                st.write("**🚀 Technology Trends:**")
+                for trend in trends[:3]:
+                    st.write(f"• {trend}")
+        
+        # Barriers and growth indicators
+        if results.get("barriers_to_entry") or results.get("growth_indicators"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if results.get("barriers_to_entry"):
+                    barriers = results["barriers_to_entry"]
+                    st.write("**🚧 Barriers to Entry:**")
+                    for barrier in barriers[:3]:
+                        st.write(f"• {barrier}")
+            
+            with col2:
+                if results.get("growth_indicators"):
+                    indicators = results["growth_indicators"]
+                    st.write("**📈 Growth Indicators:**")
+                    for indicator in indicators[:3]:
+                        st.write(f"• {indicator}")
+        
         # Market Insights
-        st.subheader("Market Insights")
+        st.subheader("💡 Strategic Market Insights")
         st.write(results.get("insights", "No insights available"))
         
         # Pricing Analysis
@@ -642,19 +869,94 @@ class MarketAnalysisModule:
             for comp in results["top_competitors"][:5]:
                 st.write(f"• {comp}")
         
-        # Sample Competitors Details
+        # Enhanced Competitor Analysis
         if results.get("sample_competitors"):
-            with st.expander("View Competitor Details"):
-                for comp in results["sample_competitors"]:
-                    col1, col2 = st.columns([3, 1])
+            st.subheader("📊 Comprehensive Competitor Analysis")
+            
+            # Show scraping metrics for market analysis
+            scraped_competitors = [c for c in results["sample_competitors"] if c.get("competitive_intel", {}).get("content_quality") == "Scraped"]
+            total_competitors = len(results["sample_competitors"])
+            
+            if scraped_competitors:
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total Competitors Analyzed", total_competitors)
+                with col2:
+                    st.metric("Websites Scraped", len(scraped_competitors))
+                with col3:
+                    scraping_success_rate = (len(scraped_competitors) / total_competitors * 100) if total_competitors > 0 else 0
+                    st.metric("Scraping Success Rate", f"{scraping_success_rate:.1f}%")
+            
+            # Competitor comparison table
+            with st.expander(f"🏢 Detailed Competitor Breakdown ({total_competitors} competitors)", expanded=True):
+                for i, comp in enumerate(results["sample_competitors"], 1):
+                    intel = comp.get("competitive_intel", {})
+                    
+                    # Header with content quality indicator
+                    content_icon = "🔥" if intel.get("content_quality") == "Scraped" else "📄"
+                    st.write(f"### {content_icon} {i}. {comp.get('name', 'Unknown')}")
+                    
+                    # Create three columns for organized display
+                    col1, col2, col3 = st.columns([2, 2, 1])
+                    
                     with col1:
-                        st.write(f"**{comp.get('name', 'Unknown')}**")
-                        st.write(comp.get('description', 'No description'))
+                        st.write("**📝 Description:**")
+                        description = comp.get('description', 'No description available')
+                        if len(description) > 200:
+                            st.write(description[:200] + "...")
+                        else:
+                            st.write(description)
+                        
                         if comp.get('link'):
-                            st.write(f"[Visit Website]({comp['link']})")
+                            st.write(f"🌐 [Visit Website]({comp['link']})")
+                        
+                        # Key Features
+                        if intel.get("key_features"):
+                            st.write("**✨ Key Features:**")
+                            for feature in intel["key_features"][:3]:
+                                st.write(f"• {feature}")
+                    
                     with col2:
-                        if comp.get('pricing', {}).get('found'):
-                            st.write(f"**${comp['pricing']['monthly']}/mo**")
+                        # Market & Company Info
+                        st.write("**🎯 Target Market:**", intel.get("target_market", "Unknown"))
+                        st.write("**🏢 Company Stage:**", intel.get("company_stage", "Unknown"))
+                        
+                        # Value Propositions
+                        if intel.get("value_propositions"):
+                            st.write("**💡 Value Props:**")
+                            for value in intel["value_propositions"][:2]:
+                                st.write(f"• {value}")
+                        
+                        # Integrations
+                        if intel.get("integration_mentions"):
+                            integrations = intel["integration_mentions"][:4]
+                            st.write("**🔗 Integrations:**", ", ".join(integrations))
+                    
+                    with col3:
+                        # Pricing and Ratings
+                        pricing = comp.get('pricing', {})
+                        if pricing.get('found'):
+                            st.metric("💰 Price", f"${pricing['monthly']}/mo")
+                        else:
+                            st.write("💰 **Price:** Not found")
+                        
                         if comp.get('avg_rating'):
-                            st.write(f"⭐ {comp['avg_rating']:.1f}/5")
+                            st.metric("⭐ Rating", f"{comp['avg_rating']:.1f}/5")
+                        
+                        if comp.get('reviews_found', 0) > 0:
+                            st.write(f"📝 {comp['reviews_found']} reviews")
+                        
+                        # Content quality indicator
+                        if intel.get("content_quality") == "Scraped":
+                            st.success("🔥 Full content")
+                        else:
+                            st.info("📄 Snippet only")
+                    
+                    # Sample reviews if available
+                    if comp.get('sample_reviews'):
+                        with st.expander(f"💬 Sample Reviews ({len(comp['sample_reviews'])})", expanded=False):
+                            for review in comp['sample_reviews']:
+                                if review.get('snippet'):
+                                    st.write(f"• \"{review['snippet'][:150]}...\"")
+                    
                     st.divider()

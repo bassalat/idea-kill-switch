@@ -72,32 +72,57 @@ Competitors and market data found:
 Market research data:
 {market_data_json}
 
-IMPORTANT: Even if pricing data is limited, analyze the competitive presence. If companies exist in this space, they likely have business models even if exact pricing isn't visible in search results.
+IMPORTANT: Analyze each competitor thoroughly for comprehensive intelligence. Extract both explicit and implicit market signals.
 
-Please provide:
-1. Market size estimate (if data available)
-2. Average pricing analysis (estimate based on company types if exact pricing not found)
-3. Key gaps in current solutions
-4. Market opportunity assessment (1-10 score) - base on competitive density, not just pricing
-5. Competitive insights
+Provide detailed analysis covering:
+1. Market size and maturity assessment
+2. Competitive pricing landscape with estimates
+3. Feature gaps and opportunities
+4. Market positioning insights
+5. Target market segmentation
+6. Technology and integration landscape
+7. Competitive advantages and weaknesses
 
-For pricing: If exact prices aren't found but you see enterprise/business/professional solutions, estimate:
+For pricing estimation when exact data unavailable:
+- Basic/Starter tools: $10-50/month
 - Small business tools: $20-100/month
 - Professional tools: $50-500/month  
 - Enterprise solutions: $200-2000/month
+- Custom/Enterprise: $500+ per month
+
+Analyze competitor positioning:
+- Direct competitors (same problem, same solution)
+- Indirect competitors (same problem, different solution)
+- Adjacent competitors (related problem space)
 
 Format your response as JSON (return ONLY the JSON, no markdown code blocks):
 {{
-    "market_size": "<estimate or 'Insufficient data'>",
+    "market_size": "<estimate with reasoning>",
+    "market_maturity": "<emerging/growing/mature/saturated>",
     "avg_pricing": {{
         "monthly_low": <number>,
         "monthly_high": <number>,
         "monthly_average": <number>
     }},
-    "gaps": ["gap1", "gap2", ...],
+    "pricing_models": ["subscription", "one-time", "usage-based", "freemium"],
+    "gaps": ["specific gap 1", "specific gap 2", ...],
     "opportunity_score": <number 1-10>,
-    "insights": "<key insights about the market>",
-    "top_competitors": ["name1", "name2", ...]
+    "insights": "<comprehensive market insights>",
+    "top_competitors": ["name1 - $price/mo - positioning", "name2 - $price/mo - positioning", ...],
+    "market_segments": {{
+        "primary": "<main target market>",
+        "secondary": "<secondary market>",
+        "emerging": "<potential new segments>"
+    }},
+    "competitive_landscape": {{
+        "direct_competitors": <number>,
+        "indirect_competitors": <number>,
+        "market_leaders": ["company1", "company2"],
+        "emerging_players": ["startup1", "startup2"]
+    }},
+    "technology_trends": ["trend1", "trend2", "trend3"],
+    "barriers_to_entry": ["barrier1", "barrier2"],
+    "growth_indicators": ["indicator1", "indicator2"]
 }}
 """
 

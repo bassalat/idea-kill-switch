@@ -29,7 +29,7 @@ FIRECRAWL_BASE_URL = "https://api.firecrawl.dev/v1"
 FIRECRAWL_BATCH_SIZE = int(os.getenv("FIRECRAWL_BATCH_SIZE", "10"))  # URLs per batch
 FIRECRAWL_MAX_URLS = int(os.getenv("FIRECRAWL_MAX_URLS", "30"))  # Max URLs to scrape per module (general)
 FIRECRAWL_PAIN_RESEARCH_MAX_URLS = int(os.getenv("FIRECRAWL_PAIN_RESEARCH_MAX_URLS", "75"))  # Higher limit for pain research
-FIRECRAWL_MARKET_ANALYSIS_MAX_URLS = int(os.getenv("FIRECRAWL_MARKET_ANALYSIS_MAX_URLS", "25"))  # Lower limit for market analysis
+FIRECRAWL_MARKET_ANALYSIS_MAX_URLS = int(os.getenv("FIRECRAWL_MARKET_ANALYSIS_MAX_URLS", "50"))  # Increased for detailed competitor analysis
 FIRECRAWL_TIMEOUT = 30000  # ms
 FIRECRAWL_WAIT_FOR = 3000  # ms
 
@@ -80,4 +80,4 @@ CACHE_TTL = 3600  # 1 hour
 # UI Settings
 PROGRESS_UPDATE_INTERVAL = 0.5  # seconds
 MAX_DISPLAY_COMPLAINTS = 20  # Show more sample complaints
-MAX_DISPLAY_COMPETITORS = 10
+MAX_DISPLAY_COMPETITORS = 15
