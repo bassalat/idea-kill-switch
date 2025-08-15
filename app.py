@@ -10,7 +10,7 @@ from modules.content_gen import ContentGenerationModule
 from modules.survey_analysis import SurveyAnalysisModule
 from utils.validators import validate_problem_description, validate_target_audience, sanitize_input
 from utils.exporters import ReportExporter
-from config.settings import APP_NAME, APP_DESCRIPTION, ANTHROPIC_API_KEY, SERPER_API_KEY
+from config.settings import APP_NAME, APP_DESCRIPTION, ANTHROPIC_API_KEY, SERPER_API_KEY, FIRECRAWL_API_KEY
 from config.prompts import VALIDATION_SUMMARY_PROMPT
 from utils.claude_client import ClaudeClient
 
@@ -266,6 +266,12 @@ def pain_research_stage():
                 value=True,
                 help="When enabled, Claude will generate custom search queries based on your specific problem. When disabled, uses generic search patterns."
             )
+            
+            use_deep_analysis = st.checkbox(
+                "Enable Deep Content Analysis (🔥 Firecrawl)", 
+                value=False,
+                help="Scrapes full content from search results for deeper analysis. Provides 10x more context but costs ~$0.20-0.30 extra per validation."
+            )
         
         with col2:
             search_strategy = st.radio(
@@ -274,6 +280,14 @@ def pain_research_stage():
                 index=0,
                 help="Diverse: Search across many platforms. Reddit: Focus mainly on Reddit for more results."
             )
+        
+        # Show cost information for deep analysis
+        if use_deep_analysis:
+            if not FIRECRAWL_API_KEY:
+                st.error("🔥 **Firecrawl API Key Required**: Deep analysis requires a Firecrawl API key. Please add FIRECRAWL_API_KEY to your .env file.")
+                use_deep_analysis = False
+            else:
+                st.info("🔥 **Deep Analysis Enabled**: Will scrape ~20-30 URLs for full content analysis. Estimated additional cost: $0.20-0.30")
         
         st.caption("💡 Tip: If you're getting few results, try 'Reddit Focused' strategy or rephrase your problem as what users complain about.")
     
@@ -325,6 +339,9 @@ def pain_research_stage():
                     percentage = int(progress * 100)
                     st.progress(progress, text=f"Search Progress: {query_num}/{total_queries} queries ({percentage}%)")
     
+    # Store deep analysis setting for other modules
+    st.session_state.use_deep_analysis = use_deep_analysis
+    
     # Run research
     with st.spinner("Initializing search..."):
         results = module.run_research(
@@ -332,7 +349,8 @@ def pain_research_stage():
             progress_callback=update_progress,
             target_audience=st.session_state.get('target_audience', None),
             use_ai_queries=use_ai_queries,
-            search_strategy=search_strategy
+            search_strategy=search_strategy,
+            use_deep_analysis=use_deep_analysis
         )
     
     # Clear the search status container
@@ -383,13 +401,17 @@ def market_analysis_stage():
     # Get pain points from previous stage
     pain_points = st.session_state.results.get("pain_research", {}).get("themes", [])
     
+    # Check if deep analysis was used in pain research (inherit setting)
+    use_deep_analysis = st.session_state.get("use_deep_analysis", False)
+    
     # Run analysis
     with st.spinner("Analyzing market..."):
         results = module.run_analysis(
             st.session_state.problem_description,
             st.session_state.target_audience,
             progress_callback=update_progress,
-            pain_points=pain_points
+            pain_points=pain_points,
+            use_deep_analysis=use_deep_analysis
         )
     
     # Clear progress

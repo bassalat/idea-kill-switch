@@ -5,6 +5,7 @@ import streamlit as st
 
 from utils.claude_client import ClaudeClient
 from utils.serper_client import SerperClient
+from utils.firecrawl_client import FirecrawlClient
 from utils.validators import validate_competitor_data
 from config.settings import (
     MIN_COMPETITOR_PRICE,
@@ -20,13 +21,15 @@ class MarketAnalysisModule:
         """Initialize the market analysis module."""
         self.claude_client = ClaudeClient()
         self.serper_client = SerperClient()
+        self.firecrawl_client = None  # Initialize only if needed
     
     def run_analysis(
         self,
         problem_description: str,
         target_audience: Optional[str] = None,
         progress_callback: Optional[callable] = None,
-        pain_points: Optional[List[str]] = None
+        pain_points: Optional[List[str]] = None,
+        use_deep_analysis: bool = False
     ) -> Dict[str, Any]:
         """
         Run the complete market analysis process.
@@ -78,7 +81,7 @@ class MarketAnalysisModule:
             if progress_callback:
                 progress_callback("Analyzing competitor pricing and reviews...")
             
-            enriched_competitors = self._enrich_competitor_data(competitors[:10])
+            enriched_competitors = self._enrich_competitor_data(competitors[:10], use_deep_analysis, progress_callback)
             results["sample_competitors"] = enriched_competitors[:MAX_DISPLAY_COMPETITORS]
             
             # Step 4: Analyze with Claude
@@ -223,18 +226,56 @@ class MarketAnalysisModule:
     
     def _enrich_competitor_data(
         self,
-        competitors: List[Dict[str, Any]]
+        competitors: List[Dict[str, Any]],
+        use_deep_analysis: bool = False,
+        progress_callback: Optional[callable] = None
     ) -> List[Dict[str, Any]]:
         """Enrich competitor data with reviews and additional info."""
         enriched = []
+        
+        # Enhanced analysis with Firecrawl if enabled
+        if use_deep_analysis:
+            try:
+                # Initialize Firecrawl client if needed
+                if self.firecrawl_client is None:
+                    from config.settings import FIRECRAWL_API_KEY
+                    if FIRECRAWL_API_KEY:
+                        self.firecrawl_client = FirecrawlClient()
+                    else:
+                        print("WARNING: FIRECRAWL_API_KEY not configured, skipping deep analysis")
+                        use_deep_analysis = False
+                
+                if use_deep_analysis and self.firecrawl_client:
+                    if progress_callback:
+                        progress_callback("🔥 Scraping competitor websites for detailed analysis...")
+                    
+                    # Get enhanced results with scraped content
+                    competitors = self.firecrawl_client.get_scraped_content_for_analysis(
+                        competitors, 
+                        progress_callback
+                    )
+                    
+                    # Track Firecrawl API cost
+                    scraped_count = len([c for c in competitors if c.get("content_available")])
+                    firecrawl_cost = scraped_count * 0.01  # $0.01 per successful scrape
+                    
+                    import streamlit as st
+                    if "api_costs" in st.session_state:
+                        st.session_state.api_costs["market_analysis"] += firecrawl_cost
+                        st.session_state.api_costs["total"] += firecrawl_cost
+                    
+                    print(f"DEBUG: Scraped {scraped_count} competitor URLs for enhanced analysis")
+                    
+            except Exception as e:
+                print(f"WARNING: Deep analysis failed, falling back to basic analysis: {str(e)}")
         
         for comp in competitors:
             try:
                 # Search for reviews
                 reviews = self.serper_client.search_reviews(comp["name"])
                 
-                # Extract pricing info if available
-                pricing_info = self._extract_pricing(comp, reviews)
+                # Extract pricing info if available (enhanced with scraped content)
+                pricing_info = self._extract_pricing(comp, reviews, use_deep_analysis)
                 
                 enriched_comp = {
                     **comp,
@@ -255,7 +296,8 @@ class MarketAnalysisModule:
     def _extract_pricing(
         self,
         competitor: Dict[str, Any],
-        reviews: List[Dict[str, Any]]
+        reviews: List[Dict[str, Any]],
+        use_deep_analysis: bool = False
     ) -> Dict[str, Any]:
         """Extract pricing information from competitor data and reviews."""
         pricing = {
@@ -268,6 +310,12 @@ class MarketAnalysisModule:
         # Combine all text sources for better extraction
         import re
         all_text = f"{competitor.get('description', '')} {competitor.get('title', '')} {competitor.get('snippet', '')}"
+        
+        # Add scraped content if available from deep analysis
+        if use_deep_analysis and competitor.get("content_available") and competitor.get("full_content"):
+            # Scraped content is much more likely to have accurate pricing
+            all_text = competitor.get("full_content", "") + " " + all_text
+            print(f"DEBUG: Using scraped content for pricing extraction: {competitor.get('name', 'Unknown')}")
         
         # Also add review text if available
         if reviews:

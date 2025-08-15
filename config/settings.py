@@ -9,6 +9,7 @@ load_dotenv()
 # API Keys
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 
 # Claude Settings
 CLAUDE_MODEL = "claude-sonnet-4-20250514"  # Claude Sonnet 4 - High-performance with exceptional reasoning
@@ -21,6 +22,14 @@ SERPER_BASE_URL = "https://google.serper.dev"
 # Pricing: $0.30 per 1000 queries = $0.0003 per query
 SERPER_SEARCH_LIMIT = 500  # Increased to handle broader searches
 SERPER_TIME_RANGE = "6 months"
+
+# Firecrawl Settings
+FIRECRAWL_BASE_URL = "https://api.firecrawl.dev/v1"
+# Pricing: $0.01 per URL scrape
+FIRECRAWL_BATCH_SIZE = int(os.getenv("FIRECRAWL_BATCH_SIZE", "10"))  # URLs per batch
+FIRECRAWL_MAX_URLS = int(os.getenv("FIRECRAWL_MAX_URLS", "30"))  # Max URLs to scrape per module
+FIRECRAWL_TIMEOUT = 30000  # ms
+FIRECRAWL_WAIT_FOR = 3000  # ms
 
 # Validation Thresholds - Three Tier System
 # Easy Threshold - "Market Exists"

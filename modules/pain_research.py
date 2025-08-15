@@ -5,6 +5,7 @@ import streamlit as st
 
 from utils.claude_client import ClaudeClient
 from utils.serper_client import SerperClient
+from utils.firecrawl_client import FirecrawlClient
 from utils.validators import clean_search_results
 from config.settings import (
     EASY_COMPLAINTS_REQUIRED,
@@ -28,6 +29,7 @@ class PainResearchModule:
         """Initialize the pain research module."""
         self.claude_client = ClaudeClient()
         self.serper_client = SerperClient()
+        self.firecrawl_client = None  # Initialize only if needed
         self.search_queries = []  # Store search queries for display
     
     def run_research(
@@ -36,7 +38,8 @@ class PainResearchModule:
         progress_callback: Optional[callable] = None,
         target_audience: Optional[str] = None,
         use_ai_queries: bool = True,
-        search_strategy: str = "Diverse Platforms"
+        search_strategy: str = "Diverse Platforms",
+        use_deep_analysis: bool = False
     ) -> Dict[str, Any]:
         """
         Run the complete pain research process.
@@ -77,7 +80,8 @@ class PainResearchModule:
                 progress_callback,
                 target_audience,
                 use_ai_queries,
-                search_strategy
+                search_strategy,
+                use_deep_analysis
             )
             results["complaints_found"] = len(complaints)
             results["sample_complaints"] = complaints[:MAX_DISPLAY_COMPLAINTS]
@@ -118,7 +122,8 @@ class PainResearchModule:
         progress_callback: Optional[callable] = None,
         target_audience: Optional[str] = None,
         use_ai_queries: bool = True,
-        search_strategy: str = "Diverse Platforms"
+        search_strategy: str = "Diverse Platforms",
+        use_deep_analysis: bool = False
     ) -> List[Dict[str, Any]]:
         """Search for complaints about the problem."""
         # Search across different platforms
@@ -150,6 +155,43 @@ class PainResearchModule:
             print(f"DEBUG: Found {len(raw_results)} raw results from Serper")  # Debug
             complaints = clean_search_results(raw_results)
             print(f"DEBUG: {len(complaints)} results after cleaning")  # Debug
+            
+            # Enhanced analysis with Firecrawl if enabled
+            if use_deep_analysis:
+                try:
+                    # Initialize Firecrawl client if needed
+                    if self.firecrawl_client is None:
+                        from config.settings import FIRECRAWL_API_KEY
+                        if FIRECRAWL_API_KEY:
+                            self.firecrawl_client = FirecrawlClient()
+                        else:
+                            print("WARNING: FIRECRAWL_API_KEY not configured, skipping deep analysis")
+                            use_deep_analysis = False
+                    
+                    if use_deep_analysis and self.firecrawl_client:
+                        if progress_callback:
+                            progress_callback("🔥 Scraping full content for deeper analysis...")
+                        
+                        # Get enhanced results with scraped content
+                        complaints = self.firecrawl_client.get_scraped_content_for_analysis(
+                            complaints, 
+                            progress_callback
+                        )
+                        
+                        # Track Firecrawl API cost (estimate based on successful scrapes)
+                        scraped_count = len([c for c in complaints if c.get("content_available")])
+                        firecrawl_cost = scraped_count * 0.01  # $0.01 per successful scrape
+                        
+                        import streamlit as st
+                        if "api_costs" in st.session_state:
+                            st.session_state.api_costs["pain_research"] += firecrawl_cost
+                            st.session_state.api_costs["total"] += firecrawl_cost
+                        
+                        print(f"DEBUG: Scraped {scraped_count} URLs for enhanced analysis")
+                        
+                except Exception as e:
+                    print(f"WARNING: Deep analysis failed, falling back to snippets: {str(e)}")
+                    # Continue with snippet-only analysis
             
             # Much more relaxed filtering - we'll let Claude analyze for pain points
             filtered_complaints = []
@@ -191,12 +233,21 @@ class PainResearchModule:
             max_complaints = min(30, len(complaints))  # Reduced from 50 to 30
             
             for c in complaints[:max_complaints]:
-                # Truncate text to avoid extremely long inputs
-                title = c.get('title', '')[:100]
-                snippet = c.get('snippet', '')[:200]
+                # Use full content if available from Firecrawl, otherwise fallback to snippet
+                if c.get("content_available") and c.get("analysis_text"):
+                    # Use scraped content for analysis
+                    text_content = c.get("analysis_text", "")[:2000]  # Limit for token management
+                    source_note = f"{c.get('source', 'Unknown')} (scraped)"
+                else:
+                    # Fallback to original snippet-based analysis
+                    title = c.get('title', '')[:100]
+                    snippet = c.get('snippet', '')[:200]
+                    text_content = f"{title} - {snippet}"
+                    source_note = c.get("source", "Unknown")
+                
                 complaints_for_analysis.append({
-                    "text": f"{title} - {snippet}",
-                    "source": c.get("source", "Unknown")
+                    "text": text_content,
+                    "source": source_note
                     # Remove link to save space
                 })
             
