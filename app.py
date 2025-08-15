@@ -256,6 +256,31 @@ def pain_research_stage():
     """Handle pain research stage."""
     st.header("Task 1: AI Pain Research 🔍")
     
+    # Navigation buttons at the top
+    st.divider()
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+    
+    with col1:
+        if st.button("← Back to Input", use_container_width=True, key="pain_nav_back"):
+            st.session_state.validation_stage = "input"
+            st.rerun()
+    
+    with col2:
+        st.button("Current: Pain Research", use_container_width=True, disabled=True, type="primary", key="pain_nav_current")
+    
+    with col3:
+        # Allow navigation to market analysis even if killed
+        if st.button("Market Analysis →", use_container_width=True, key="pain_nav_market"):
+            st.session_state.validation_stage = "market_analysis"
+            st.rerun()
+    
+    with col4:
+        if st.button("View Summary →", use_container_width=True, key="pain_nav_summary"):
+            st.session_state.validation_stage = "results"
+            st.rerun()
+    
+    st.divider()
+    
     # Add settings expander
     with st.expander("⚙️ Search Settings", expanded=False):
         col1, col2 = st.columns(2)
@@ -362,33 +387,41 @@ def pain_research_stage():
     # Display results
     module.display_results(results)
     
-    # Navigation
-    st.divider()
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
-    
-    with col1:
-        if st.button("← Back to Input", use_container_width=True):
-            st.session_state.validation_stage = "input"
-            st.rerun()
-    
-    with col2:
-        st.button("Current: Pain Research", use_container_width=True, disabled=True, type="primary")
-    
-    with col3:
-        # Allow navigation to market analysis even if killed
-        if st.button("Market Analysis →", use_container_width=True):
-            st.session_state.validation_stage = "market_analysis"
-            st.rerun()
-    
-    with col4:
-        if st.button("View Summary →", use_container_width=True):
-            st.session_state.validation_stage = "results"
-            st.rerun()
 
 
 def market_analysis_stage():
     """Handle market analysis stage."""
     st.header("Task 2: AI Market Analysis 📊")
+    
+    # Navigation buttons at the top
+    st.divider()
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+    
+    with col1:
+        if st.button("← Pain Research", use_container_width=True, key="market_nav_pain"):
+            st.session_state.validation_stage = "pain_research"
+            st.rerun()
+    
+    with col2:
+        st.button("Current: Market Analysis", use_container_width=True, disabled=True, type="primary", key="market_nav_current")
+    
+    with col3:
+        # Allow navigation to content generation even if killed
+        if st.button("Content Gen →", use_container_width=True, key="market_nav_content"):
+            st.session_state.validation_stage = "content_generation"
+            st.rerun()
+    
+    with col4:
+        if st.button("Survey →", use_container_width=True, key="market_nav_survey"):
+            st.session_state.validation_stage = "survey"
+            st.rerun()
+    
+    with col5:
+        if st.button("Summary →", use_container_width=True, key="market_nav_summary"):
+            st.session_state.validation_stage = "results"
+            st.rerun()
+    
+    st.divider()
     
     module = MarketAnalysisModule()
     
@@ -423,38 +456,41 @@ def market_analysis_stage():
     # Display results
     module.display_results(results)
     
-    # Navigation
-    st.divider()
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
-    
-    with col1:
-        if st.button("← Pain Research", use_container_width=True):
-            st.session_state.validation_stage = "pain_research"
-            st.rerun()
-    
-    with col2:
-        st.button("Current: Market Analysis", use_container_width=True, disabled=True, type="primary")
-    
-    with col3:
-        # Allow navigation to content generation even if killed
-        if st.button("Content Gen →", use_container_width=True):
-            st.session_state.validation_stage = "content_generation"
-            st.rerun()
-    
-    with col4:
-        if st.button("Survey →", use_container_width=True):
-            st.session_state.validation_stage = "survey"
-            st.rerun()
-    
-    with col5:
-        if st.button("Summary →", use_container_width=True):
-            st.session_state.validation_stage = "results"
-            st.rerun()
 
 
 def content_generation_stage():
     """Handle content generation stage."""
     st.header("Task 3: AI Content Creation & Testing 📝")
+    
+    # Navigation buttons at the top
+    st.divider()
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+    
+    with col1:
+        if st.button("← Pain Research", use_container_width=True, key="content_nav_pain"):
+            st.session_state.validation_stage = "pain_research"
+            st.rerun()
+    
+    with col2:
+        if st.button("← Market Analysis", use_container_width=True, key="content_nav_market"):
+            st.session_state.validation_stage = "market_analysis"
+            st.rerun()
+    
+    with col3:
+        st.button("Current: Content", use_container_width=True, disabled=True, type="primary", key="content_nav_current")
+    
+    with col4:
+        # Allow navigation to survey even if killed
+        if st.button("Survey →", use_container_width=True, key="content_nav_survey"):
+            st.session_state.validation_stage = "survey"
+            st.rerun()
+    
+    with col5:
+        if st.button("Summary →", use_container_width=True, key="content_nav_summary"):
+            st.session_state.validation_stage = "results"
+            st.rerun()
+    
+    st.divider()
     
     module = ContentGenerationModule()
     
@@ -487,38 +523,40 @@ def content_generation_stage():
     # Display results
     module.display_results(results)
     
-    # Navigation
-    st.divider()
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
-    
-    with col1:
-        if st.button("← Pain Research", use_container_width=True):
-            st.session_state.validation_stage = "pain_research"
-            st.rerun()
-    
-    with col2:
-        if st.button("← Market Analysis", use_container_width=True):
-            st.session_state.validation_stage = "market_analysis"
-            st.rerun()
-    
-    with col3:
-        st.button("Current: Content", use_container_width=True, disabled=True, type="primary")
-    
-    with col4:
-        # Allow navigation to survey even if killed
-        if st.button("Survey →", use_container_width=True):
-            st.session_state.validation_stage = "survey"
-            st.rerun()
-    
-    with col5:
-        if st.button("Summary →", use_container_width=True):
-            st.session_state.validation_stage = "results"
-            st.rerun()
 
 
 def survey_stage():
     """Handle survey stage."""
     st.header("Bonus: AI Survey Analysis 📋")
+    
+    # Navigation buttons at the top
+    st.divider()
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+    
+    with col1:
+        if st.button("← Pain Research", use_container_width=True, key="survey_nav_pain"):
+            st.session_state.validation_stage = "pain_research"
+            st.rerun()
+    
+    with col2:
+        if st.button("← Market Analysis", use_container_width=True, key="survey_nav_market"):
+            st.session_state.validation_stage = "market_analysis"
+            st.rerun()
+    
+    with col3:
+        if st.button("← Content Gen", use_container_width=True, key="survey_nav_content"):
+            st.session_state.validation_stage = "content_generation"
+            st.rerun()
+    
+    with col4:
+        st.button("Current: Survey", use_container_width=True, disabled=True, type="primary", key="survey_nav_current")
+    
+    with col5:
+        if st.button("Summary →", use_container_width=True, key="survey_nav_summary"):
+            st.session_state.validation_stage = "results"
+            st.rerun()
+    
+    st.divider()
     
     module = SurveyAnalysisModule()
     
@@ -566,37 +604,40 @@ def survey_stage():
             # Display results
             module.display_analysis_results(analysis_results)
     
-    # Navigation
-    st.divider()
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
-    
-    with col1:
-        if st.button("← Pain Research", use_container_width=True):
-            st.session_state.validation_stage = "pain_research"
-            st.rerun()
-    
-    with col2:
-        if st.button("← Market Analysis", use_container_width=True):
-            st.session_state.validation_stage = "market_analysis"
-            st.rerun()
-    
-    with col3:
-        if st.button("← Content Gen", use_container_width=True):
-            st.session_state.validation_stage = "content_generation"
-            st.rerun()
-    
-    with col4:
-        st.button("Current: Survey", use_container_width=True, disabled=True, type="primary")
-    
-    with col5:
-        if st.button("Summary →", use_container_width=True):
-            st.session_state.validation_stage = "results"
-            st.rerun()
 
 
 def results_stage():
     """Handle results summary stage."""
     st.header("Validation Summary 📊")
+    
+    # Navigation buttons at the top
+    st.divider()
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+    
+    with col1:
+        if st.button("← Pain Research", use_container_width=True, key="results_nav_pain"):
+            st.session_state.validation_stage = "pain_research"
+            st.rerun()
+    
+    with col2:
+        if st.button("← Market Analysis", use_container_width=True, key="results_nav_market"):
+            st.session_state.validation_stage = "market_analysis"
+            st.rerun()
+    
+    with col3:
+        if st.button("← Content Gen", use_container_width=True, key="results_nav_content"):
+            st.session_state.validation_stage = "content_generation"
+            st.rerun()
+    
+    with col4:
+        if st.button("← Survey", use_container_width=True, key="results_nav_survey"):
+            st.session_state.validation_stage = "survey"
+            st.rerun()
+    
+    with col5:
+        st.button("Current: Summary", use_container_width=True, disabled=True, type="primary", key="results_nav_current")
+    
+    st.divider()
     
     # Generate overall summary
     claude_client = ClaudeClient()
@@ -895,33 +936,6 @@ Format as JSON with keys: viability_score, strengths, risks, next_steps, recomme
             help="Download raw data in JSON format for developers"
         )
     
-    # Navigation
-    st.divider()
-    st.subheader("Navigation")
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
-    
-    with col1:
-        if st.button("← Pain Research", use_container_width=True):
-            st.session_state.validation_stage = "pain_research"
-            st.rerun()
-    
-    with col2:
-        if st.button("← Market Analysis", use_container_width=True):
-            st.session_state.validation_stage = "market_analysis"
-            st.rerun()
-    
-    with col3:
-        if st.button("← Content Gen", use_container_width=True):
-            st.session_state.validation_stage = "content_generation"
-            st.rerun()
-    
-    with col4:
-        if st.button("← Survey", use_container_width=True):
-            st.session_state.validation_stage = "survey"
-            st.rerun()
-    
-    with col5:
-        st.button("Current: Summary", use_container_width=True, disabled=True, type="primary")
     
     # Add a button to start over
     st.divider()
