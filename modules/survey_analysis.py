@@ -60,10 +60,14 @@ class SurveyAnalysisModule:
             
             # Track API cost
             if "cost" in response:
-                import streamlit as st
-                if "api_costs" in st.session_state:
-                    st.session_state.api_costs["survey_analysis"] += response["cost"]
-                    st.session_state.api_costs["total"] += response["cost"]
+                try:
+                    import streamlit as st
+                    if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                        st.session_state.api_costs["survey_analysis"] += response["cost"]
+                        st.session_state.api_costs["total"] += response["cost"]
+                except:
+                    # If session state is not available, skip cost tracking
+                    pass
             
             try:
                 questions = json.loads(response["content"])
@@ -141,10 +145,14 @@ class SurveyAnalysisModule:
             
             # Track API cost
             if "cost" in response:
-                import streamlit as st
-                if "api_costs" in st.session_state:
-                    st.session_state.api_costs["survey_analysis"] += response["cost"]
-                    st.session_state.api_costs["total"] += response["cost"]
+                try:
+                    import streamlit as st
+                    if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                        st.session_state.api_costs["survey_analysis"] += response["cost"]
+                        st.session_state.api_costs["total"] += response["cost"]
+                except:
+                    # If session state is not available, skip cost tracking
+                    pass
             
             try:
                 analysis = json.loads(response["content"])

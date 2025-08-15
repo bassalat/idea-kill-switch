@@ -64,12 +64,16 @@ class MarketAnalysisModule:
             results["competitors_found"] = len(competitors)
             
             # Track Serper API cost ($0.0003 per search query)
-            import streamlit as st
-            if "api_costs" in st.session_state:
-                # Estimate 30 queries for competitors + 10 for reviews
-                serper_cost = 40 * 0.0003
-                st.session_state.api_costs["market_analysis"] += serper_cost
-                st.session_state.api_costs["total"] += serper_cost
+            try:
+                import streamlit as st
+                if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                    # Estimate 30 queries for competitors + 10 for reviews
+                    serper_cost = 40 * 0.0003
+                    st.session_state.api_costs["market_analysis"] += serper_cost
+                    st.session_state.api_costs["total"] += serper_cost
+            except:
+                # If session state is not available, skip cost tracking
+                pass
             
             # Step 2: Search for market data
             if progress_callback:
@@ -259,10 +263,14 @@ class MarketAnalysisModule:
                     scraped_count = len([c for c in competitors if c.get("content_available")])
                     firecrawl_cost = scraped_count * 0.01  # $0.01 per successful scrape
                     
-                    import streamlit as st
-                    if "api_costs" in st.session_state:
-                        st.session_state.api_costs["market_analysis"] += firecrawl_cost
-                        st.session_state.api_costs["total"] += firecrawl_cost
+                    try:
+                        import streamlit as st
+                        if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                            st.session_state.api_costs["market_analysis"] += firecrawl_cost
+                            st.session_state.api_costs["total"] += firecrawl_cost
+                    except:
+                        # If session state is not available, skip cost tracking
+                        pass
                     
                     print(f"DEBUG: Scraped {scraped_count} competitor URLs for enhanced analysis")
                     
@@ -496,10 +504,14 @@ class MarketAnalysisModule:
             
             # Track API cost
             if "cost" in response:
-                import streamlit as st
-                if "api_costs" in st.session_state:
-                    st.session_state.api_costs["market_analysis"] += response["cost"]
-                    st.session_state.api_costs["total"] += response["cost"]
+                try:
+                    import streamlit as st
+                    if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                        st.session_state.api_costs["market_analysis"] += response["cost"]
+                        st.session_state.api_costs["total"] += response["cost"]
+                except:
+                    # If session state is not available, skip cost tracking
+                    pass
             
             # Parse response
             try:

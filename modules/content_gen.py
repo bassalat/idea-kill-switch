@@ -137,10 +137,14 @@ class ContentGenerationModule:
             
             # Track API cost
             if "cost" in response:
-                import streamlit as st
-                if "api_costs" in st.session_state:
-                    st.session_state.api_costs["content_generation"] += response["cost"]
-                    st.session_state.api_costs["total"] += response["cost"]
+                try:
+                    import streamlit as st
+                    if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                        st.session_state.api_costs["content_generation"] += response["cost"]
+                        st.session_state.api_costs["total"] += response["cost"]
+                except:
+                    # If session state is not available, skip cost tracking
+                    pass
             
             try:
                 # Handle markdown code blocks from Claude
@@ -200,10 +204,14 @@ class ContentGenerationModule:
             
             # Track API cost
             if "cost" in response:
-                import streamlit as st
-                if "api_costs" in st.session_state:
-                    st.session_state.api_costs["content_generation"] += response["cost"]
-                    st.session_state.api_costs["total"] += response["cost"]
+                try:
+                    import streamlit as st
+                    if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                        st.session_state.api_costs["content_generation"] += response["cost"]
+                        st.session_state.api_costs["total"] += response["cost"]
+                except:
+                    # If session state is not available, skip cost tracking
+                    pass
             
             try:
                 # Handle markdown code blocks from Claude
@@ -263,10 +271,14 @@ class ContentGenerationModule:
             
             # Track API cost
             if "cost" in response:
-                import streamlit as st
-                if "api_costs" in st.session_state:
-                    st.session_state.api_costs["content_generation"] += response["cost"]
-                    st.session_state.api_costs["total"] += response["cost"]
+                try:
+                    import streamlit as st
+                    if hasattr(st, 'session_state') and "api_costs" in st.session_state:
+                        st.session_state.api_costs["content_generation"] += response["cost"]
+                        st.session_state.api_costs["total"] += response["cost"]
+                except:
+                    # If session state is not available, skip cost tracking
+                    pass
             
             try:
                 # Handle markdown code blocks from Claude

@@ -195,19 +195,13 @@ class FirecrawlClient:
             if progress_callback:
                 progress_callback(f"Scraping batch {i//FIRECRAWL_BATCH_SIZE + 1} ({len(batch)} URLs)...")
             
-            # Try batch scraping first, fall back to individual if needed
-            try:
-                batch_results = self._batch_scrape_internal(batch)
-                results.extend(batch_results)
-            except Exception as e:
-                print(f"WARNING: Batch scraping failed, falling back to individual: {str(e)}")
-                # Fall back to individual scraping
-                for url in batch:
-                    if progress_callback:
-                        progress_callback(f"Scraping {url[:50]}...")
-                    result = self.scrape_single_url(url)
-                    results.append(result)
-                    time.sleep(1)  # Rate limiting
+            # Use individual scraping for better reliability
+            for url in batch:
+                if progress_callback:
+                    progress_callback(f"Scraping {url[:50]}...")
+                result = self.scrape_single_url(url)
+                results.append(result)
+                time.sleep(0.5)  # Rate limiting between requests
         
         successful_results = [r for r in results if r["success"] and r["content"]]
         print(f"DEBUG: Successfully scraped {len(successful_results)}/{len(urls_to_scrape)} URLs")
@@ -216,12 +210,15 @@ class FirecrawlClient:
     
     def _batch_scrape_internal(self, urls: List[str]) -> List[Dict[str, Any]]:
         """Internal method for batch scraping."""
+        # Firecrawl API v1 batch endpoint format
         payload = {
             "urls": urls,
-            "formats": ["markdown"],
-            "includeTags": ["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "li"],
-            "excludeTags": ["nav", "footer", "header", "aside", "script", "style"],
-            "onlyMainContent": True,
+            "extractorOptions": {
+                "formats": ["markdown"],
+                "includeTags": ["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "li"],
+                "excludeTags": ["nav", "footer", "header", "aside", "script", "style"],
+                "onlyMainContent": True
+            },
             "timeout": 30000,
             "waitFor": 3000
         }
